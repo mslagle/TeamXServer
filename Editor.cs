@@ -30,6 +30,16 @@ namespace TeamXServer
             return Selections.ContainsKey(UID);
         }
 
+        public ulong SelectedByWho(string UID)
+        {
+            if (Selections.ContainsKey(UID))
+            {
+                return Selections[UID];
+            }
+
+            return 0;
+        }
+
         public bool IsSelectedBy(string UID, ulong steamID)
         {
             if(Selections.ContainsKey(UID))

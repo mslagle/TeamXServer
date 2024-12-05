@@ -15,7 +15,7 @@ namespace TeamXServer
 
         public PermissionLevel GetPermissionLevel(ulong steamID)
         {
-            return PermissionLevel.Player;
+            return PermissionLevel.Moderator;
         }
 
         public Player AddPlayer(NetConnection connection, ulong steamID, PermissionLevel level)
