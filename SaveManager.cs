@@ -36,7 +36,7 @@ namespace TeamXServer
             if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
-                Logger.Log($"Created directory: {path}");
+                Logger.Log($"Created directory: {path}", LogType.Message);
             }
         }
 
@@ -46,34 +46,34 @@ namespace TeamXServer
 
             if (saves.Length == 0)
             {
-                Logger.Log("No saves found.");
+                Logger.Log("No saves found.", LogType.Message);
                 return;
             }
 
-            Logger.Log("Loading latest save...");
+            Logger.Log("Loading latest save...", LogType.Message);
             LoadSave(saves.OrderByDescending(f => f.CreationTime).First());
             lastSaveTime = DateTime.Now;
         }
 
         public void Initialize(bool loadExistingAtStartup)
         {
-            Logger.Log("Initializing saves...");
+            Logger.Log("Initializing saves...", LogType.Message);
 
             var saves = GetSaveFiles(Program.Config.ServerSavePath, "*.teamkist");
 
             if (saves.Length == 0)
             {
-                Logger.Log("No saves found.");
+                Logger.Log("No saves found.", LogType.Message);
                 return;
             }
 
             if (!loadExistingAtStartup)
             {
-                Logger.Log("LoadBackupOnStart is false, creating new save at startup.");
+                Logger.Log("LoadBackupOnStart is false, creating new save at startup.", LogType.Message);
                 return;
             }
 
-            Logger.Log("Loading latest save...");
+            Logger.Log("Loading latest save...", LogType.Message);
             LoadSave(saves.OrderByDescending(f => f.CreationTime).First());
             lastSaveTime = DateTime.Now;
         }
@@ -82,7 +82,7 @@ namespace TeamXServer
         {
             try
             {
-                Logger.Log($"Loading save file: {saveFile.Name}");
+                Logger.Log($"Loading save file: {saveFile.Name}", LogType.Message);
 
                 // Read the file content
                 string jsonString = File.ReadAllText(saveFile.FullName);
@@ -98,17 +98,17 @@ namespace TeamXServer
                 // Apply the loaded data to the editor
                 Program.editor.ImportSaveFile(loadedSave);
 
-                Logger.Log("Save file loaded successfully!");
+                Logger.Log("Save file loaded successfully!", LogType.Message);
             }
             catch (Exception ex)
             {
-                Logger.Log($"Error loading save file: {ex.Message}");
+                Logger.Log($"Error loading save file: {ex.Message}", LogType.Error);
             }
         }        
 
         public void Save()
         {
-            Logger.Log("Saving...");
+            Logger.Log("Saving...", LogType.Message);
 
             try
             {
@@ -119,11 +119,11 @@ namespace TeamXServer
                 CleanupOldFiles(Program.Config.ZeepSavePath, "*.zeeplevel");
 
                 lastSaveTime = DateTime.Now;
-                Logger.Log("Save completed successfully!");
+                Logger.Log("Save completed successfully!", LogType.Message);
             }
             catch (Exception ex)
             {
-                Logger.Log($"Error during save: {ex.Message}");
+                Logger.Log($"Error during save: {ex.Message}", LogType.Error);
             }
         }        
 
@@ -131,14 +131,14 @@ namespace TeamXServer
         {
             string filePath = GetTimestampedFilePath(Program.Config.ServerSavePath, $"{Program.Config.LevelName}.teamkist");
             File.WriteAllText(filePath, JsonConvert.SerializeObject(saveFile));
-            Logger.Log($"Server save created: {filePath}");
+            Logger.Log($"Server save created: {filePath}", LogType.Message);
         }
 
         private void SaveZeepFile(SaveFile saveFile)
         {
             string filePath = GetTimestampedFilePath(Program.Config.ZeepSavePath, $"{Program.Config.LevelName}.zeeplevel");
             File.WriteAllLines(filePath, FormatZeepFile(saveFile));
-            Logger.Log($"Zeep save created: {filePath}");
+            Logger.Log($"Zeep save created: {filePath}", LogType.Message);
         }
 
         private List<string> FormatZeepFile(SaveFile saveFile)
@@ -172,7 +172,7 @@ namespace TeamXServer
             {
                 var fileToDelete = files.OrderBy(f => f.CreationTime).First();
                 File.Delete(fileToDelete.FullName);
-                Logger.Log($"Deleted old save: {fileToDelete.Name}");
+                Logger.Log($"Deleted old save: {fileToDelete.Name}", LogType.Message);
             }
         }
 

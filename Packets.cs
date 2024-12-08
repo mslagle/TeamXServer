@@ -52,7 +52,7 @@ namespace TeamXServer
         {
             ushort packetId = (ushort)(packetType.Name.GetStableHashCode() & ushort.MaxValue);
             PacketTypeRegistry[packetId] = packetType;
-            Logger.Log($"Registering: {packetType.Name}, Packet ID: {packetId}");
+            Logger.Log($"Registering: {packetType.Name}, Packet ID: {packetId}", LogType.Message);
         }
 
         public static Type GetPacketType(ushort packetId)

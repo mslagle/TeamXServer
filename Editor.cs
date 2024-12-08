@@ -90,7 +90,7 @@ namespace TeamXServer
             }
             else
             {
-                Logger.Log("Can't add block because UID already exists. UID: " + block.UID);
+                Logger.Log("Can't add block because UID already exists. UID: " + block.UID, LogType.Warning);
             }
         }
 
@@ -103,7 +103,7 @@ namespace TeamXServer
             }
             else
             {
-                Logger.Log("Can't add block because UID already exists. UID: " + block.UID);
+                Logger.Log("Can't add block because UID already exists. UID: " + block.UID, LogType.Warning);
             }
         }
 
@@ -120,7 +120,7 @@ namespace TeamXServer
             }
             else
             {
-                Logger.Log("Can't remove block because UID doesn't exist. UID: " + uid);
+                Logger.Log("Can't remove block because UID doesn't exist. UID: " + uid, LogType.Warning);
             }
         }
 
@@ -132,7 +132,7 @@ namespace TeamXServer
             }
             else
             {
-                Logger.Log("Can't update block because UID doesn't exist. UID: " + block.UID);
+                Logger.Log("Can't update block because UID doesn't exist. UID: " + block.UID, LogType.Warning);
             }
         }
 
@@ -163,7 +163,7 @@ namespace TeamXServer
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Error loading block UID {block.UID}: {ex.Message}");
+                    Logger.Log($"Error loading block UID {block.UID}: {ex.Message}", LogType.Warning);
                 }
             }
         }

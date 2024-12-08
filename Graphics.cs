@@ -21,26 +21,26 @@ namespace TeamXServer
 
         public static void ShowLogo()
         {
-            Logger.Log("", false);
-            Logger.LogColored(logo[0], ConsoleColor.White, false);
-            Logger.LogColored(logo[1], ConsoleColor.White, false);
-            Logger.LogColored(logo[2], ConsoleColor.White, false);
-            Logger.LogColored(logo[3], ConsoleColor.White, false);
-            Logger.LogColored(logo[4], ConsoleColor.White, false);
-            Logger.LogColored(logo[5], ConsoleColor.White, false);
-            Logger.LogColored(logo[6], ConsoleColor.White, false);
-            Logger.Log("", false);
+            Logger.Log("", LogType.Message, false);
+            Logger.Log(logo[0], LogType.Message, false);
+            Logger.Log(logo[1], LogType.Message, false);
+            Logger.Log(logo[2], LogType.Message, false);
+            Logger.Log(logo[3], LogType.Message, false);
+            Logger.Log(logo[4], LogType.Message, false);
+            Logger.Log(logo[5], LogType.Message, false);
+            Logger.Log(logo[6], LogType.Message, false);
+            Logger.Log("", LogType.Message, false);
         }
 
         public static void LogConfiguration(ServerConfig config)
         {
-            Logger.Log($"IP:\t\t\t{config.ServerIP}");
-            Logger.Log($"Port:\t\t{config.ServerPort}");
-            Logger.Log($"Level Name:\t\t{config.LevelName}");
-            Logger.Log($"Auto Save Interval:\t{config.AutoSaveInterval}");
-            Logger.Log($"Backup Count:\t{config.BackupCount}");
-            Logger.Log($"Loading Backup:\t{config.LoadBackupOnStart}");
-            Logger.Log($"Keeping Backup with No Editors:\t{config.KeepBackupWithNoEditors}");
+            Logger.Log($"IP:\t\t\t{config.ServerIP}", LogType.Message);
+            Logger.Log($"Port:\t\t{config.ServerPort}", LogType.Message);
+            Logger.Log($"Level Name:\t\t{config.LevelName}", LogType.Message);
+            Logger.Log($"Auto Save Interval:\t{config.AutoSaveInterval}", LogType.Message);
+            Logger.Log($"Backup Count:\t{config.BackupCount}", LogType.Message);
+            Logger.Log($"Loading Backup:\t{config.LoadBackupOnStart}", LogType.Message);
+            Logger.Log($"Keeping Backup with No Editors:\t{config.KeepBackupWithNoEditors}", LogType.Message);
         }
     }
 }

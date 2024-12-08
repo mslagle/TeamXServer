@@ -29,12 +29,12 @@ namespace TeamXServer
             }
             catch (Exception e)
             {
-                Logger.Log("A problem occured when setting up the server. Please check configuration.");
-                Logger.Log(e.ToString());
+                Logger.Log("A problem occured when setting up the server. Please check configuration.", LogType.Error);
+                Logger.Log(e.ToString(), LogType.Error);
                 throw;
             }
 
-            Logger.Log("Starting server on " + Program.Config.ServerIP + ":" + Program.Config.ServerPort);
+            Logger.Log("Starting server on " + Program.Config.ServerIP + ":" + Program.Config.ServerPort, LogType.Message);
         }
 
         public void Run()
@@ -66,17 +66,17 @@ namespace TeamXServer
                             {
                                 var packet = (IPacket)Activator.CreateInstance(packetType);
                                 packet.Deserialize(im);
-                                Logger.Log($"Received packet of type: {packetType.Name}");
+                                Logger.Log($"Received packet of type: {packetType.Name}", LogType.Debug);
                                 HandlePacket(packet, senderConnection);
                             }
                             else
                             {
-                                Logger.Log($"Unknown packet ID: {packetId}");
+                                Logger.Log($"Unknown packet ID: {packetId}", LogType.Warning);
                             }
                         }
                         else
                         {
-                            Logger.Log("Failed to unpack the message.");
+                            Logger.Log("Failed to unpack the message.", LogType.Warning);
                         }
                         break;
                 }
@@ -133,7 +133,7 @@ namespace TeamXServer
             {
                 if (sendAccessDenied)
                 {
-                    Logger.Log($"Sending AccessDenied packet to {steamID}.");
+                    Logger.Log($"Sending AccessDenied packet to {steamID}.", LogType.Debug);
 
                     AccessDeniedPacket accessDeniedPacket = new AccessDeniedPacket()
                     {
@@ -151,7 +151,7 @@ namespace TeamXServer
 
         public void OnPlayerConnect(NetConnection connection)
         {
-            Logger.Log("Player connected. Sending handshake request...");
+            Logger.Log("Player connected. Sending handshake request...", LogType.Debug);
 
             var handshakeRequest = new HandshakeRequestPacket
             {
@@ -169,13 +169,13 @@ namespace TeamXServer
             if (player != null)
             {
                 Program.playerManager.RemovePlayer(connection);
-                Logger.Log($"Player {player.SteamID} disconnected.");
+                Logger.Log($"Player {player.SteamID} disconnected.", LogType.Message);
             }
         }
 
         public void HandleHandshakeResponse(HandshakeResponsePacket packet, NetConnection connection)
         {
-            Logger.Log($"Received HandleHandshakeResponse packet from {packet.SteamID}.");
+            Logger.Log($"Received HandleHandshakeResponse packet from {packet.SteamID}.", LogType.Debug);
 
             if(Access(packet.SteamID, connection))
             {
@@ -185,7 +185,7 @@ namespace TeamXServer
                     Message = "Access Granted."
                 };
 
-                Logger.Log($"Sending AccessGrantedPacket to {packet.SteamID}.");
+                Logger.Log($"Sending AccessGrantedPacket to {packet.SteamID}.", LogType.Debug);
 
                 var outgoingMessage = connection.Peer.CreateMessage();
                 PacketUtility.Pack(accessGrantedPacket, outgoingMessage);
@@ -195,7 +195,7 @@ namespace TeamXServer
 
         public void HandlePlayerJoin(PlayerJoinPacket packet, NetConnection connection)
         {
-            Logger.Log($"Received HandlePlayerJoin packet from {packet.SteamID}");
+            Logger.Log($"Received HandlePlayerJoin packet from {packet.SteamID}", LogType.Debug);
             
             if (Access(packet.SteamID, connection))
             {
@@ -235,39 +235,39 @@ namespace TeamXServer
                     Program.playerManager.SendToPlayer(connection, joinPacket);
                 }
 
-                Logger.Log($"Send PlayerJoinPacket to all other connected players.");
+                Logger.Log($"Send PlayerJoinPacket to all other connected players.", LogType.Debug);
             }
         }
 
         public void HandlePlayerLeft(PlayerLeftPacket packet, NetConnection connection)
         {
-            Logger.Log($"Received PlayerLeft packet from {packet.SteamID}.");
+            Logger.Log($"Received PlayerLeft packet from {packet.SteamID}.", LogType.Debug);
 
             if (Access(packet.SteamID, connection))
             {                
                 Program.playerManager.RemovePlayer(connection);
                 
-                Logger.Log($"Sending PlayerLeft packet to all other connected players.");
+                Logger.Log($"Sending PlayerLeft packet to all other connected players.", LogType.Debug);
                 Program.playerManager.SendToAllExcept(connection, packet);
             }
         }
         
         public void HandlePlayerState(PlayerStatePacket packet, NetConnection connection)
         {
-            Logger.Log($"Received PlayerState packet from {packet.SteamID}.");
+            Logger.Log($"Received PlayerState packet from {packet.SteamID}.", LogType.Debug);
 
             if (Access(packet.SteamID, connection))
             {              
                 Program.playerManager.UpdatePlayer(connection, packet);
 
-                Logger.Log($"Sending PlayerState packet to all other connected players.");
+                Logger.Log($"Sending PlayerState packet to all other connected players.", LogType.Debug);
                 Program.playerManager.SendToAllExcept(connection, packet);
             }
         }
         
         public void HandleEditorStateRequest(EditorStateRequestPacket packet, NetConnection connection)
         {
-            Logger.Log($"Received EditorStateRequest packet from {packet.SteamID}.");
+            Logger.Log($"Received EditorStateRequest packet from {packet.SteamID}.", LogType.Debug);
 
             if (Access(packet.SteamID, connection))
             {
@@ -283,13 +283,13 @@ namespace TeamXServer
                 PacketUtility.Pack(editorState, outgoingMessage);
                 connection.SendMessage(outgoingMessage, NetDeliveryMethod.ReliableOrdered, 0);
 
-                Logger.Log($"Sending EditorStateResponse packet back to player.");
+                Logger.Log($"Sending EditorStateResponse packet back to player.", LogType.Debug);
             }
         }
 
         public void HandleEditorBlockCreate(EditorBlockCreatePacket packet, NetConnection connection)
         {
-            Logger.Log($"Received EditorBlockCreate packet from {packet.SteamID}.");
+            Logger.Log($"Received EditorBlockCreate packet from {packet.SteamID}.", LogType.Debug);
 
             Block packetBlock = Program.editor.JSONToBlock(packet.BlockString);
 
@@ -298,21 +298,21 @@ namespace TeamXServer
                 //Save the change
                 Program.editor.Add(packetBlock);
 
-                Logger.Log($"Sending EditorBlockCreate packet to all other connected players.");
+                Logger.Log($"Sending EditorBlockCreate packet to all other connected players.", LogType.Debug);
 
                 //Notify others
                 Program.playerManager.SendToAllExcept(connection, packet);
             }
             else
             {
-                Logger.Log($"Received EditorBlockCreate packet from {packet.SteamID}, but permission level is not high enough. Current level ({(byte)Program.playerManager.GetPermissionLevel(packet.SteamID)}), required: 1.");
+                Logger.Log($"Received EditorBlockCreate packet from {packet.SteamID}, but permission level is not high enough. Current level ({(byte)Program.playerManager.GetPermissionLevel(packet.SteamID)}), required: 1.", LogType.Debug);
 
                 EditorBlockCreateDeniedPacket editorBlockCreateDeniedPacket = new EditorBlockCreateDeniedPacket()
                 {
                      UID = packetBlock.UID
                 };
 
-                Logger.Log($"Sending EditorBlockCreateDenied packet back to player.");
+                Logger.Log($"Sending EditorBlockCreateDenied packet back to player.", LogType.Debug);
 
                 Program.playerManager.SendToPlayer(connection, editorBlockCreateDeniedPacket);
             }
@@ -320,7 +320,7 @@ namespace TeamXServer
 
         public void HandleEditorBlockUpdate(EditorBlockUpdatePacket packet, NetConnection connection)
         {
-            Logger.Log($"Received EditorBlockUpdate packet from {packet.SteamID}.");
+            Logger.Log($"Received EditorBlockUpdate packet from {packet.SteamID}.", LogType.Debug);
 
             Block packetBlock = Program.editor.JSONToBlock(packet.BlockString);
 
@@ -335,11 +335,11 @@ namespace TeamXServer
                     bool selectedBySamePlayer = isSelected && Program.editor.IsSelectedBy(packetBlock.UID, player.SteamID);
                     bool notSelectedAccess = !isSelected && (block.SteamID == packet.SteamID || (byte)player.Permissions > 1);
 
-                    Logger.Log($"HandleEditorBlockUpdate: IsSelected: {isSelected}, SelectedBySamePlayer: {selectedBySamePlayer}, NotSelectedAccess: {notSelectedAccess}.");
+                    Logger.Log($"HandleEditorBlockUpdate: IsSelected: {isSelected}, SelectedBySamePlayer: {selectedBySamePlayer}, NotSelectedAccess: {notSelectedAccess}.", LogType.Debug);
 
                     if (selectedBySamePlayer || notSelectedAccess)
                     {
-                        Logger.Log($"HandleEditorBlockUpdate: Updating block and notifying others.");
+                        Logger.Log($"HandleEditorBlockUpdate: Updating block and notifying others.", LogType.Debug);
 
                         //Save the change
                         Program.editor.Update(packetBlock);
@@ -351,11 +351,11 @@ namespace TeamXServer
                 }
                 else
                 {
-                    Logger.Log($"HandleEditorBlockUpdate: Either block or player returned null. Player {player}, Block: {block}");
+                    Logger.Log($"HandleEditorBlockUpdate: Either block or player returned null. Player {player}, Block: {block}", LogType.Debug);
                 }
             }
 
-            Logger.Log($"Sending EditorBlockUpdateDenied packet back to player.");
+            Logger.Log($"Sending EditorBlockUpdateDenied packet back to player.", LogType.Debug);
 
             EditorBlockUpdateDeniedPacket editorBlockUpdateDeniedPacket = new EditorBlockUpdateDeniedPacket()
             {
@@ -367,7 +367,7 @@ namespace TeamXServer
 
         public void HandleEditorBlockDestroy(EditorBlockDestroyPacket packet, NetConnection connection)
         {
-            Logger.Log($"Received EditorBlockDestroy packet from {packet.SteamID}.");
+            Logger.Log($"Received EditorBlockDestroy packet from {packet.SteamID}.", LogType.Debug);
 
             if (Access(packet.SteamID, connection, false))
             {
@@ -380,27 +380,30 @@ namespace TeamXServer
                     bool selectedBySamePlayer = isSelected && Program.editor.IsSelectedBy(packet.UID, player.SteamID);
                     bool notSelectedAccess = !isSelected && (block.SteamID == packet.SteamID || (byte)player.Permissions > 1);
 
-                    Logger.Log($"HandleEditorBlockDestroy: IsSelected: {isSelected}, SelectedBySamePlayer: {selectedBySamePlayer}, NotSelectedAccess: {notSelectedAccess}.");
+                    Logger.Log($"HandleEditorBlockDestroy: IsSelected: {isSelected}, SelectedBySamePlayer: {selectedBySamePlayer}, NotSelectedAccess: {notSelectedAccess}.", LogType.Debug);
 
                     if (selectedBySamePlayer || notSelectedAccess)
                     {
-                        Logger.Log($"HandleEditorBlockDestroy: Destroying block and notifying others.");
+                        Logger.Log($"HandleEditorBlockDestroy: Destroying block and notifying others.", LogType.Debug);
 
                         //Save the change
                         Program.editor.Remove(packet.UID);
 
                         //Notify others
                         Program.playerManager.SendToAllExcept(connection, packet);
+
+                        //Make sure selections are removed from destroyed blocks.
+                        Program.editor.Deselect(packet.UID);
                         return;
                     }
                 }
                 else
                 {
-                    Logger.Log($"HandleEditorBlockDestroy: Either block or player returned null. Player {player}, Block: {block}");
+                    Logger.Log($"HandleEditorBlockDestroy: Either block or player returned null. Player {player}, Block: {block}", LogType.Debug);
                 }
             }
 
-            Logger.Log($"Sending EditorBlockDestroyDenied packet back to player.");
+            Logger.Log($"Sending EditorBlockDestroyDenied packet back to player.", LogType.Debug);
 
             EditorBlockDestroyDeniedPacket editorBlockDestroyDeniedPacket = new EditorBlockDestroyDeniedPacket()
             {
@@ -412,11 +415,11 @@ namespace TeamXServer
 
         public void HandleEditorFloor(EditorFloorPacket packet, NetConnection connection)
         {
-            Logger.Log($"Received EditorFloor packet from {packet.SteamID}.");
+            Logger.Log($"Received EditorFloor packet from {packet.SteamID}.", LogType.Debug);
 
             if (Access(packet.SteamID, connection, false))
             {
-                Logger.Log($"HandleEditorFloor: Setting floor and notifying others.");
+                Logger.Log($"HandleEditorFloor: Setting floor and notifying others.", LogType.Debug);
 
                 //Save the change
                 Program.editor.SetFloor(packet.Floor);
@@ -426,7 +429,7 @@ namespace TeamXServer
             }
             else
             {
-                Logger.Log($"Sending EditorFloorDenied packet back to player.");
+                Logger.Log($"Sending EditorFloorDenied packet back to player.", LogType.Debug);
 
                 EditorFloorDeniedPacket editorFloorDeniedPacket = new EditorFloorDeniedPacket()
                 {
@@ -439,11 +442,11 @@ namespace TeamXServer
 
         public void HandleEditorSkybox(EditorSkyboxPacket packet, NetConnection connection)
         {
-            Logger.Log($"Received EditorSkybox packet from {packet.SteamID}.");
+            Logger.Log($"Received EditorSkybox packet from {packet.SteamID}.", LogType.Debug);
 
             if (Access(packet.SteamID, connection, false))
             {
-                Logger.Log($"HandleEditorSkybox: Setting skybox and notifying others.");
+                Logger.Log($"HandleEditorSkybox: Setting skybox and notifying others.", LogType.Debug);
 
                 //Save the change
                 Program.editor.SetSkybox(packet.Skybox);
@@ -453,7 +456,7 @@ namespace TeamXServer
             }
             else
             {
-                Logger.Log($"Sending EditorSkyboxDenied packet back to player.");
+                Logger.Log($"Sending EditorSkyboxDenied packet back to player.", LogType.Debug);
 
                 EditorSkyboxDeniedPacket editorSkyboxDeniedPacket = new EditorSkyboxDeniedPacket()
                 {
@@ -466,7 +469,7 @@ namespace TeamXServer
 
         public void HandleEditorSelection(EditorSelectionPacket packet, NetConnection connection)
         {
-            Logger.Log($"Received EditorSelection packet from {packet.SteamID}.");
+            Logger.Log($"Received EditorSelection packet from {packet.SteamID}.", LogType.Debug);
 
             if (Access(packet.SteamID, connection, false))
             {
@@ -483,18 +486,23 @@ namespace TeamXServer
                             return;
                         }
                     }
+                    else if(Program.editor.IsSelectedBy(packet.UID, packet.SteamID))
+                    {
+                        Logger.Log("HandleEditorSelection: Double Selection... CTRL-YZ?", LogType.Debug);
+                        return;
+                    }
                     else
                     {
-                        Logger.Log($"HandleEditorSelection: Block is already selected by {Program.editor.SelectedByWho(packet.UID)}.");
+                        Logger.Log($"HandleEditorSelection: Block is already selected by {Program.editor.SelectedByWho(packet.UID)}.", LogType.Debug);
                     }
                 }
                 else
                 {
-                    Logger.Log($"HandleEditorSelection: Either block or player returned null. Player {player}, Block: {block}");
+                    Logger.Log($"HandleEditorSelection: Either block or player returned null. Player {player}, Block: {block}", LogType.Debug);
                 }
             }
 
-            Logger.Log($"Sending EditorSelectionDenied packet back to player.");
+            Logger.Log($"Sending EditorSelectionDenied packet back to player.", LogType.Debug);
 
             EditorSelectionDeniedPacket editorSelectionDenied = new EditorSelectionDeniedPacket()
             {
@@ -506,7 +514,7 @@ namespace TeamXServer
 
         public void HandleEditorDeselection(EditorDeselectionPacket packet, NetConnection connection)
         {
-            Logger.Log($"Received EditorDeselection packet from {packet.SteamID}.");
+            Logger.Log($"Received EditorDeselection packet from {packet.SteamID}.", LogType.Debug);
 
             if (Access(packet.SteamID, connection, false))
             {
@@ -522,12 +530,12 @@ namespace TeamXServer
                     }  
                     else
                     {
-                        Logger.Log($"HandleEditorDeselection: Trying to deselect a block that is not owned by this player.");
+                        Logger.Log($"HandleEditorDeselection: Trying to deselect a block that is not owned by this player.", LogType.Debug);
                     }
                 }
                 else
                 {
-                    Logger.Log($"HandleEditorDeselection: Either block or player returned null. Player {player}, Block: {block}");
+                    Logger.Log($"HandleEditorDeselection: Either block or player returned null. Player {player}, Block: {block}", LogType.Debug);
                 }
             }
         }
@@ -535,7 +543,6 @@ namespace TeamXServer
         public void Shutdown(string message)
         {
             server?.Shutdown(message);
-        }
-      
+        }      
     }
 }
