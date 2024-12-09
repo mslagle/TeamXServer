@@ -254,7 +254,37 @@ namespace TeamXServer
             }
         }
     }
+    
+    public struct ServerRulesRequestPacket : IPacket
+    {
+        public ulong SteamID;
 
+        public void Deserialize(NetIncomingMessage im)
+        {
+            SteamID = im.ReadUInt64();
+        }
+
+        public void Serialize(NetOutgoingMessage om)
+        {
+            om.Write(SteamID);
+        }
+    }
+
+    public struct ServerRulesResponsePacket : IPacket
+    {
+        public int MaxBlockCount;
+
+        public void Deserialize(NetIncomingMessage im)
+        {
+            MaxBlockCount = im.ReadInt32();
+        }
+
+        public void Serialize(NetOutgoingMessage om)
+        {
+            om.Write(MaxBlockCount);
+        }
+    }
+    
     public struct EditorBlockCreatePacket : IPacket
     {
         public ulong SteamID;

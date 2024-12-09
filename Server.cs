@@ -99,6 +99,9 @@ namespace TeamXServer
                 case EditorStateRequestPacket editorStateRequestPacket:
                     HandleEditorStateRequest(editorStateRequestPacket, connection);
                     break;
+                case ServerRulesRequestPacket serverRulesRequestPacket:
+                    HandleServerRulesRequest(serverRulesRequestPacket, connection);
+                    break;
                 case EditorBlockCreatePacket blockCreatePacket:
                     HandleEditorBlockCreate(blockCreatePacket, connection);
                     break;
@@ -151,7 +154,7 @@ namespace TeamXServer
 
         public void OnPlayerConnect(NetConnection connection)
         {
-            Logger.Log("Player connected. Sending handshake request...", LogType.Debug);
+            Logger.Log("Player connected...", LogType.Message);
 
             var handshakeRequest = new HandshakeRequestPacket
             {
@@ -196,6 +199,7 @@ namespace TeamXServer
         public void HandlePlayerJoin(PlayerJoinPacket packet, NetConnection connection)
         {
             Logger.Log($"Received HandlePlayerJoin packet from {packet.SteamID}", LogType.Debug);
+            Logger.Log($"Player {packet.SteamID} joined", LogType.Message);
             
             if (Access(packet.SteamID, connection))
             {
@@ -242,14 +246,11 @@ namespace TeamXServer
         public void HandlePlayerLeft(PlayerLeftPacket packet, NetConnection connection)
         {
             Logger.Log($"Received PlayerLeft packet from {packet.SteamID}.", LogType.Debug);
+            Program.playerManager.RemovePlayer(connection);
+            Program.editor.RemoveAllSelectionsFrom(packet.SteamID);
 
-            if (Access(packet.SteamID, connection))
-            {                
-                Program.playerManager.RemovePlayer(connection);
-                
-                Logger.Log($"Sending PlayerLeft packet to all other connected players.", LogType.Debug);
-                Program.playerManager.SendToAllExcept(connection, packet);
-            }
+            Logger.Log($"Sending PlayerLeft packet to all other connected players.", LogType.Debug);
+            Program.playerManager.SendToAllExcept(connection, packet);
         }
         
         public void HandlePlayerState(PlayerStatePacket packet, NetConnection connection)
@@ -284,6 +285,25 @@ namespace TeamXServer
                 connection.SendMessage(outgoingMessage, NetDeliveryMethod.ReliableOrdered, 0);
 
                 Logger.Log($"Sending EditorStateResponse packet back to player.", LogType.Debug);
+            }
+        }
+
+        public void HandleServerRulesRequest(ServerRulesRequestPacket packet, NetConnection connection)
+        {
+            Logger.Log($"Received ServerRulesResponse packet from {packet.SteamID}.", LogType.Debug);
+
+            if(Access(packet.SteamID, connection))
+            {
+                ServerRulesResponsePacket serverRules = new ServerRulesResponsePacket()
+                {
+                    MaxBlockCount = 100
+                };
+
+                var outgoingMessage = connection.Peer.CreateMessage();
+                PacketUtility.Pack(serverRules, outgoingMessage);
+                connection.SendMessage(outgoingMessage, NetDeliveryMethod.ReliableOrdered, 0);
+
+                Logger.Log($"Sending ServerRulesRequest packet back to player.", LogType.Debug);
             }
         }
 

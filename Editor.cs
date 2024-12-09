@@ -53,6 +53,26 @@ namespace TeamXServer
             return false;
         }
 
+        public void RemoveAllSelectionsFrom(ulong steamID)
+        {
+            List<string> keysToRemove = new List<string>();
+
+            // Find matching keys
+            foreach (var kvp in Selections)
+            {
+                if (kvp.Value == steamID)
+                {
+                    keysToRemove.Add(kvp.Key);
+                }
+            }
+
+            // Remove matching keys
+            foreach (var key in keysToRemove)
+            {
+                Selections.Remove(key);
+            }
+        }
+
         public Block GetBlock(string UID)
         {
             if(Blocks.ContainsKey(UID))
