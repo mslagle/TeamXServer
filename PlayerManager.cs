@@ -13,14 +13,9 @@ namespace TeamXServer
         
         public PlayerManager() { }
 
-        public PermissionLevel GetPermissionLevel(ulong steamID)
+        public Player AddPlayer(NetConnection connection, ulong steamID)
         {
-            return PermissionLevel.Moderator;
-        }
-
-        public Player AddPlayer(NetConnection connection, ulong steamID, PermissionLevel level)
-        {
-            Player player = new Player(connection, steamID, level);
+            Player player = new Player(connection, steamID);
             connectedPlayers.Add(connection, player);
             return player;
         }

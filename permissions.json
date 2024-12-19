@@ -1,0 +1,66 @@
+﻿{
+  "Players": {
+  },
+  "Permissions": {
+    "admin": {
+      "IsAdministrator": true,
+      "CanJoin": true,
+      "CanCreate": true,
+      "CanEdit": true,
+      "CanEditAll": true,
+      "CanEditFloor": true,
+      "CanEditSkybox": true,
+      "CanDestroy": true,
+      "BlockLimit": 100000,
+      "BannedBlocks": []
+    },
+    "trusted": {
+      "IsAdministrator": false,
+      "CanJoin": true,
+      "CanCreate": true,
+      "CanEdit": true,
+      "CanEditAll": true,
+      "CanEditFloor": true,
+      "CanEditSkybox": true,
+      "CanDestroy": true,
+      "BlockLimit": 100000,
+      "BannedBlocks": []
+    },
+    "default": {
+      "IsAdministrator": false,
+      "CanJoin": true,
+      "CanCreate": true,
+      "CanEdit": true,
+      "CanEditAll": false,
+      "CanEditFloor": false,
+      "CanEditSkybox": false,
+      "CanDestroy": true,
+      "BlockLimit": 200,
+      "BannedBlocks": []
+    },
+    "guest": {
+      "IsAdministrator": false,
+      "CanJoin": true,
+      "CanCreate": false,
+      "CanEdit": false,
+      "CanEditAll": false,
+      "CanEditFloor": false,
+      "CanEditSkybox": false,
+      "CanDestroy": false,
+      "BlockLimit": 0,
+      "BannedBlocks": []
+    },
+    "banned": {
+      "IsAdministrator": false,
+      "CanJoin": false,
+      "CanCreate": false,
+      "CanEdit": false,
+      "CanEditAll": false,
+      "CanEditFloor": false,
+      "CanEditSkybox": false,
+      "CanDestroy": false,
+      "BlockLimit": 0,
+      "BannedBlocks": []
+    }
+  }
+}

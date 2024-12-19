@@ -131,8 +131,8 @@ namespace TeamXServer
 
         public bool Access(ulong steamID, NetConnection connection, bool sendAccessDenied = true)
         {
-            PermissionLevel permissionLevel = Program.playerManager.GetPermissionLevel(steamID);
-            if(permissionLevel == 0)
+            PermissionSystemPermissions perms = Program.perms.GetPermissions(steamID);
+            if(!perms.CanJoin)
             {
                 if (sendAccessDenied)
                 {
@@ -184,7 +184,6 @@ namespace TeamXServer
             {
                 AccessGrantedPacket accessGrantedPacket = new AccessGrantedPacket()
                 {
-                    Level = (byte)Program.playerManager.GetPermissionLevel(packet.SteamID),
                     Message = "Access Granted."
                 };
 
@@ -203,7 +202,7 @@ namespace TeamXServer
             
             if (Access(packet.SteamID, connection))
             {
-                Player player = Program.playerManager.AddPlayer(connection, packet.SteamID, Program.playerManager.GetPermissionLevel(packet.SteamID));
+                Player player = Program.playerManager.AddPlayer(connection, packet.SteamID);
                 player.SetProperties(packet);
                 
                 //Send the player joined packet to all other players
@@ -290,20 +289,31 @@ namespace TeamXServer
 
         public void HandleServerRulesRequest(ServerRulesRequestPacket packet, NetConnection connection)
         {
-            Logger.Log($"Received ServerRulesResponse packet from {packet.SteamID}.", LogType.Debug);
+            Logger.Log($"Received ServerRulesRequest packet from {packet.SteamID}.", LogType.Debug);
 
             if(Access(packet.SteamID, connection))
             {
+                PermissionSystemPermissions perms = Program.perms.GetPermissions(packet.SteamID);
+
                 ServerRulesResponsePacket serverRules = new ServerRulesResponsePacket()
                 {
-                    MaxBlockCount = 100
+                    IsAdministrator = perms.IsAdministrator,
+                    CanJoin = perms.CanJoin,
+                    CanCreate = perms.CanCreate,
+                    CanEdit = perms.CanEdit,
+                    CanEditAll = perms.CanEditAll,
+                    CanEditFloor = perms.CanEditFloor,
+                    CanEditSkybox = perms.CanEditSkybox,
+                    CanDestroy = perms.CanDestroy,
+                    BlockLimit = perms.BlockLimit,
+                    BannedBlocks = perms.BannedBlocks
                 };
 
                 var outgoingMessage = connection.Peer.CreateMessage();
                 PacketUtility.Pack(serverRules, outgoingMessage);
                 connection.SendMessage(outgoingMessage, NetDeliveryMethod.ReliableOrdered, 0);
 
-                Logger.Log($"Sending ServerRulesRequest packet back to player.", LogType.Debug);
+                Logger.Log($"Sending ServerRulesResponse packet back to player.", LogType.Debug);
             }
         }
 
@@ -325,7 +335,7 @@ namespace TeamXServer
             }
             else
             {
-                Logger.Log($"Received EditorBlockCreate packet from {packet.SteamID}, but permission level is not high enough. Current level ({(byte)Program.playerManager.GetPermissionLevel(packet.SteamID)}), required: 1.", LogType.Debug);
+                Logger.Log($"Received EditorBlockCreate packet from {packet.SteamID}, but permission level is not high enough.", LogType.Debug);
 
                 EditorBlockCreateDeniedPacket editorBlockCreateDeniedPacket = new EditorBlockCreateDeniedPacket()
                 {
@@ -348,12 +358,13 @@ namespace TeamXServer
             {
                 Player player = Program.playerManager.GetPlayer(connection);                
                 Block block = Program.editor.GetBlock(packetBlock.UID);
+                PermissionSystemPermissions perms = Program.perms.GetPermissions(packet.SteamID);
 
                 if (block != null && player != null)
                 {
                     bool isSelected = Program.editor.IsSelected(packetBlock.UID);
                     bool selectedBySamePlayer = isSelected && Program.editor.IsSelectedBy(packetBlock.UID, player.SteamID);
-                    bool notSelectedAccess = !isSelected && (block.SteamID == packet.SteamID || (byte)player.Permissions > 1);
+                    bool notSelectedAccess = !isSelected && (block.SteamID == packet.SteamID || perms.CanEditAll);
 
                     Logger.Log($"HandleEditorBlockUpdate: IsSelected: {isSelected}, SelectedBySamePlayer: {selectedBySamePlayer}, NotSelectedAccess: {notSelectedAccess}.", LogType.Debug);
 
@@ -393,12 +404,13 @@ namespace TeamXServer
             {
                 Player player = Program.playerManager.GetPlayer(connection);
                 Block block = Program.editor.GetBlock(packet.UID);
+                PermissionSystemPermissions perms = Program.perms.GetPermissions(packet.SteamID);
 
                 if (block != null && player != null)
                 {
                     bool isSelected = Program.editor.IsSelected(packet.UID);
                     bool selectedBySamePlayer = isSelected && Program.editor.IsSelectedBy(packet.UID, player.SteamID);
-                    bool notSelectedAccess = !isSelected && (block.SteamID == packet.SteamID || (byte)player.Permissions > 1);
+                    bool notSelectedAccess = !isSelected && (block.SteamID == packet.SteamID || perms.CanEditAll);
 
                     Logger.Log($"HandleEditorBlockDestroy: IsSelected: {isSelected}, SelectedBySamePlayer: {selectedBySamePlayer}, NotSelectedAccess: {notSelectedAccess}.", LogType.Debug);
 
@@ -495,12 +507,13 @@ namespace TeamXServer
             {
                 Player player = Program.playerManager.GetPlayer(connection);
                 Block block = Program.editor.GetBlock(packet.UID);
+                PermissionSystemPermissions perms = Program.perms.GetPermissions(packet.SteamID);
 
                 if (block != null && player != null)
                 {
                     if(!Program.editor.IsSelected(packet.UID))
                     {
-                        if(block.SteamID == packet.SteamID || (byte)player.Permissions > 1)
+                        if(block.SteamID == packet.SteamID || perms.CanEditAll)
                         {
                             Program.editor.Select(packet.UID, packet.SteamID);
                             return;

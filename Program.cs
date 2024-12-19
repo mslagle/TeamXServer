@@ -18,6 +18,7 @@ namespace TKServerConsole
         public static Editor editor;
         public static PlayerManager playerManager;
         public static Server server;
+        public static PermissionSystem perms;
         public static void Main(string[] args)
         {
             Graphics.ShowLogo();
@@ -37,6 +38,7 @@ namespace TKServerConsole
                 editor = new Editor();
                 saveManager = new SaveManager();
                 playerManager = new PlayerManager();
+                perms = new PermissionSystem();
                 server = new Server();                
 
                 RunServerLoop();

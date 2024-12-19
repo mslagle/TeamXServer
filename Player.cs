@@ -11,7 +11,6 @@ namespace TeamXServer
     public class Player
     {
         public NetConnection Connection { get; }
-        public PermissionLevel Permissions { get; set; }
 
         public ulong SteamID { get; set; }
         public string Name { get; set; }
@@ -37,11 +36,10 @@ namespace TeamXServer
         public float EulerZ { get; set; }
         public byte Mode { get; set; }
 
-        public Player(NetConnection connection, ulong steamID, PermissionLevel level)
+        public Player(NetConnection connection, ulong steamID)
         {
             SteamID = steamID;
             Connection = connection;
-            Permissions = level;
         }
 
         public void SetProperties(PlayerJoinPacket packet)

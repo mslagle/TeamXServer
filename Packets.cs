@@ -6,15 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace TeamXServer
-{
-    public enum PermissionLevel
-    {
-        Banned = 0,
-        Player = 1,
-        Moderator = 2,
-        Admin = 3,
-        Owner = 4
-    }
+{ 
 
     public interface IPacket
     {
@@ -121,18 +113,15 @@ namespace TeamXServer
     public struct AccessGrantedPacket : IPacket
     {
         public string Message;
-        public byte Level;
 
         public void Deserialize(NetIncomingMessage im)
         {
             Message = im.ReadString();
-            Level = im.ReadByte();
         }
 
         public void Serialize(NetOutgoingMessage om)
         {
             om.Write(Message);
-            om.Write(Level);
         }
     }
 
@@ -272,19 +261,58 @@ namespace TeamXServer
 
     public struct ServerRulesResponsePacket : IPacket
     {
-        public int MaxBlockCount;
+        public bool IsAdministrator;
+        public bool CanJoin;
+        public bool CanCreate;
+        public bool CanEdit;
+        public bool CanEditAll;
+        public bool CanEditFloor;
+        public bool CanEditSkybox;
+        public bool CanDestroy;
+        public int BlockLimit;
+        public int BannedBlockCount;
+        public List<int> BannedBlocks;
 
         public void Deserialize(NetIncomingMessage im)
         {
-            MaxBlockCount = im.ReadInt32();
+            IsAdministrator = im.ReadBoolean();
+            CanJoin = im.ReadBoolean();
+            CanCreate = im.ReadBoolean();
+            CanEdit = im.ReadBoolean();
+            CanEditAll = im.ReadBoolean();
+            CanEditFloor = im.ReadBoolean();
+            CanEditSkybox = im.ReadBoolean();
+            CanDestroy = im.ReadBoolean();
+            BlockLimit = im.ReadInt32();
+
+            BannedBlocks = new List<int>();
+
+            BannedBlockCount = im.ReadInt32();
+            for (int i = 0; i < BannedBlockCount; i++)
+            {
+                BannedBlocks.Add(im.ReadInt32());
+            }
         }
 
         public void Serialize(NetOutgoingMessage om)
         {
-            om.Write(MaxBlockCount);
+            om.Write(IsAdministrator);
+            om.Write(CanJoin);
+            om.Write(CanCreate);
+            om.Write(CanEdit);
+            om.Write(CanEditAll);
+            om.Write(CanEditFloor);
+            om.Write(CanEditSkybox);
+            om.Write(CanDestroy);
+            om.Write(BlockLimit);
+            om.Write(BannedBlocks.Count);
+            foreach (int bb in BannedBlocks)
+            {
+                om.Write(bb);
+            }
         }
     }
-    
+
     public struct EditorBlockCreatePacket : IPacket
     {
         public ulong SteamID;
