@@ -6,9 +6,9 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Globalization;
-using TeamXServer;
+using TeamXNetwork;
 
-namespace TKServerConsole
+namespace TeamXServer
 {
     public static class Program
     {

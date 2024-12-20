@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
-using TKServerConsole;
+using TeamXNetwork;
 
 namespace TeamXServer
 {
