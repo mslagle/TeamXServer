@@ -42,6 +42,19 @@ namespace TeamXServer
             LoadPermissionsFromFile();
         }
 
+        public (ulong,string,string) GetPermissionEntry(ulong steamID)
+        {
+            string steamIDString = steamID.ToString();
+
+            if(!CurrentConfig.Players.ContainsKey(steamIDString))
+            {
+                return (steamID, "", "default");
+            }
+
+            PermissionSystemPlayer player = CurrentConfig.Players[steamIDString];
+            return (steamID, player.Name, player.PermissionLevel);
+        }
+
         public PermissionSystemPermissions GetPermissions(ulong steamID)
         {
             string steamIDString = steamID.ToString();
@@ -86,6 +99,15 @@ namespace TeamXServer
             else
             {
                 AddPlayer(steamID, newPermissionLevel);
+                SavePermissionsToFile();
+            }
+        }
+
+        public void UpdatePlayerName(string steamID, string newName)
+        {
+            if (CurrentConfig.Players.ContainsKey(steamID))
+            {
+                CurrentConfig.Players[steamID].Name = newName;
                 SavePermissionsToFile();
             }
         }

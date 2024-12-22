@@ -84,7 +84,7 @@ namespace TeamXServer
         }
 
         public void HandlePacket(IPacket packet, NetConnection connection)
-        {
+        {            
             switch(packet)
             {
                 case HandshakeResponsePacket handshakeResponsePacket:
@@ -126,6 +126,41 @@ namespace TeamXServer
                 case PlayerStatePacket playerStatePacket:
                     HandlePlayerState(playerStatePacket, connection);
                     break;
+                case PermissionTableRequest permissionTableRequest:
+                    HandlePermissionTableRequest(permissionTableRequest, connection);
+                    break;
+                case PermissionTableSubmit permissionTableSubmit:
+                    HandlePermissionTableSubmit(permissionTableSubmit, connection);
+                    break;
+            }
+        }
+
+        public void HandlePermissionTableRequest(PermissionTableRequest tableRequest, NetConnection connection)
+        {
+            PermissionSystemPermissions perms = Program.perms.GetPermissions(tableRequest.SteamID);
+            if (perms.IsAdministrator)
+            {
+                PermissionTableResponse resp = new PermissionTableResponse();
+                resp.permissionTable = new List<(ulong, string, string)>();
+                
+                //Create a table and send it back
+                //Go over all players
+                foreach(Player p in Program.playerManager.connectedPlayers.Values)
+                {
+                    resp.permissionTable.Add(Program.perms.GetPermissionEntry(p.SteamID));
+                }
+
+                var outgoingMessage = connection.Peer.CreateMessage();
+                PacketUtility.Pack(resp, outgoingMessage);
+                connection.SendMessage(outgoingMessage, NetDeliveryMethod.ReliableOrdered, 0);
+            }
+        }
+
+        public void HandlePermissionTableSubmit(PermissionTableSubmit tableSubmit, NetConnection connection)
+        {
+            foreach((ulong,string,string) entry in tableSubmit.permissionTable)
+            {
+                Program.perms.UpdatePlayerPermission(entry.Item1.ToString(), entry.Item3);
             }
         }
 
@@ -204,6 +239,9 @@ namespace TeamXServer
             {
                 Player player = Program.playerManager.AddPlayer(connection, packet.SteamID);
                 player.SetProperties(packet);
+
+                //Rename the player in the permission system.
+                Program.perms.UpdatePlayerName(packet.SteamID.ToString(), player.Name);
                 
                 //Send the player joined packet to all other players
                 Program.playerManager.SendToAllExcept(connection, packet);
