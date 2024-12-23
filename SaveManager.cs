@@ -9,25 +9,95 @@ using System.Threading.Tasks;
 
 namespace TeamXServer
 {
+    public class SaveJSON
+    {
+        public string LevelName { get; set; }
+        public int AutoSaveInterval { get; set; }
+        public int BackupCount { get; set; }
+        public bool LoadBackupOnStart { get; set; }
+        public bool KeepBackupWithNoEditors { get; set; }
+    }
+
     public class SaveManager
     {
+        private readonly string _filePath;
+        public SaveJSON saveConfiguration;
         private DateTime lastSaveTime;
+
+        public string ServerBasePath;
+        public string ProjectPath;
+        public string ZeepSavePath;
+        public string ServerSavePath;
 
         public SaveManager()
         {
+            _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "save.json");
+            saveConfiguration = ReadConfig();
+            if(saveConfiguration == null)
+            {
+                SaveJSON saveJSON = new SaveJSON()
+                {
+                    LevelName = "TeamXServer",
+                    AutoSaveInterval = 60,
+                    BackupCount = 5,
+                    LoadBackupOnStart = true,
+                    KeepBackupWithNoEditors = true
+                };
+
+                saveConfiguration = saveJSON;
+                WriteConfig(saveJSON);
+            }
+
             InitializeDirectories();
 
-            if(Program.Config.LoadBackupOnStart)
+            if(saveConfiguration.LoadBackupOnStart)
             {
                 TryLoadLatestSave();
             }
         }
 
+        public void ApplySaveConfiguration(SaveJSON saveJSON)
+        {
+            saveConfiguration = saveJSON;
+            WriteConfig(saveJSON);
+            InitializeDirectories();
+        }
+
         private void InitializeDirectories()
         {
-            EnsureDirectoryExists(Program.Config.ProjectPath);
-            EnsureDirectoryExists(Program.Config.ZeepSavePath);
-            EnsureDirectoryExists(Program.Config.ServerSavePath);
+            ServerBasePath = AppDomain.CurrentDomain.BaseDirectory;
+            ProjectPath = Path.Combine(ServerBasePath, saveConfiguration.LevelName);
+            ZeepSavePath = Path.Combine(ProjectPath, "ZeepSaves");
+            ServerSavePath = Path.Combine(ProjectPath, "ServerSaves");
+
+            EnsureDirectoryExists(ProjectPath);
+            EnsureDirectoryExists(ZeepSavePath);
+            EnsureDirectoryExists(ServerSavePath);
+        }
+
+        /// <summary>
+        /// Reads the SaveJSON configuration from the specified file path.
+        /// </summary>
+        /// <returns>A SaveJSON object populated with data from the file.</returns>
+        public SaveJSON ReadConfig()
+        {
+            if (!File.Exists(_filePath))
+            {
+                return null;
+            }
+
+            string jsonContent = File.ReadAllText(_filePath);
+            return JsonConvert.DeserializeObject<SaveJSON>(jsonContent);
+        }
+
+        /// <summary>
+        /// Writes the updated SaveJSON configuration to the same file path.
+        /// </summary>
+        /// <param name="config">The updated SaveJSON object to write.</param>
+        public void WriteConfig(SaveJSON config)
+        {
+            string jsonContent = JsonConvert.SerializeObject(config, Formatting.Indented);
+            File.WriteAllText(_filePath, jsonContent);
         }
 
         private void EnsureDirectoryExists(string path)
@@ -41,7 +111,7 @@ namespace TeamXServer
 
         public void TryLoadLatestSave()
         {
-            var saves = GetSaveFiles(Program.Config.ServerSavePath, "*.teamkist");
+            var saves = GetSaveFiles(ServerSavePath, "*.teamkist");
 
             if (saves.Length == 0)
             {
@@ -58,7 +128,7 @@ namespace TeamXServer
         {
             Logger.Log("Initializing saves...", LogType.Message);
 
-            var saves = GetSaveFiles(Program.Config.ServerSavePath, "*.teamkist");
+            var saves = GetSaveFiles(ServerSavePath, "*.teamkist");
 
             if (saves.Length == 0)
             {
@@ -77,7 +147,7 @@ namespace TeamXServer
             lastSaveTime = DateTime.Now;
         }
 
-        private void LoadSave(FileInfo saveFile)
+        public void LoadSave(FileInfo saveFile)
         {
             try
             {
@@ -114,8 +184,8 @@ namespace TeamXServer
                 var saveFile = Program.editor.CreateSaveFile();
                 SaveServerFile(saveFile);
                 SaveZeepFile(saveFile);
-                CleanupOldFiles(Program.Config.ServerSavePath, "*.teamkist");
-                CleanupOldFiles(Program.Config.ZeepSavePath, "*.zeeplevel");
+                CleanupOldFiles(ServerSavePath, "*.teamkist");
+                CleanupOldFiles(ZeepSavePath, "*.zeeplevel");
 
                 lastSaveTime = DateTime.Now;
                 Logger.Log("Save completed successfully!", LogType.Message);
@@ -128,14 +198,14 @@ namespace TeamXServer
 
         private void SaveServerFile(SaveFile saveFile)
         {
-            string filePath = GetTimestampedFilePath(Program.Config.ServerSavePath, $"{Program.Config.LevelName}.teamkist");
+            string filePath = GetTimestampedFilePath(ServerSavePath, $"{saveConfiguration.LevelName}.teamkist");
             File.WriteAllText(filePath, JsonConvert.SerializeObject(saveFile));
             Logger.Log($"Server save created: {filePath}", LogType.Message);
         }
 
         private void SaveZeepFile(SaveFile saveFile)
         {
-            string filePath = GetTimestampedFilePath(Program.Config.ZeepSavePath, $"{Program.Config.LevelName}.zeeplevel");
+            string filePath = GetTimestampedFilePath(ZeepSavePath, $"{saveConfiguration.LevelName}.zeeplevel");
             File.WriteAllLines(filePath, FormatZeepFile(saveFile));
             Logger.Log($"Zeep save created: {filePath}", LogType.Message);
         }
@@ -144,7 +214,7 @@ namespace TeamXServer
         {
             var lines = new List<string>();
             string uid = GenerateUID(saveFile);
-            lines.Add($"LevelEditor2,{Program.Config.LevelName},{uid}");
+            lines.Add($"LevelEditor2,{saveConfiguration.LevelName},{uid}");
             lines.Add("0,0,0,0,0,0,0,0");
             lines.Add($"invalid track,0,0,0,{saveFile.Skybox},{saveFile.Floor}");
 
@@ -158,7 +228,7 @@ namespace TeamXServer
 
         private string GenerateUID(SaveFile saveFile)
         {
-            string parsedName = Regex.Replace(Program.Config.LevelName, @"[^a-zA-Z0-9\s]", "");
+            string parsedName = Regex.Replace(saveConfiguration.LevelName, @"[^a-zA-Z0-9\s]", "");
             string timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
             string randomPart = new Random().Next(100000, 999999).ToString();
             return $"{timestamp}-{parsedName}-{randomPart}-{saveFile.Blocks.Count}";
@@ -167,7 +237,7 @@ namespace TeamXServer
         private void CleanupOldFiles(string directory, string searchPattern)
         {
             var files = GetSaveFiles(directory, searchPattern);
-            if (files.Length > Program.Config.BackupCount)
+            if (files.Length > saveConfiguration.BackupCount)
             {
                 var fileToDelete = files.OrderBy(f => f.CreationTime).First();
                 File.Delete(fileToDelete.FullName);
@@ -182,7 +252,7 @@ namespace TeamXServer
 
         public void RunAutoSave()
         {
-            if ((DateTime.Now - lastSaveTime).TotalSeconds >= Program.Config.AutoSaveInterval)
+            if ((DateTime.Now - lastSaveTime).TotalSeconds >= saveConfiguration.AutoSaveInterval)
             {
                 Save();
             }

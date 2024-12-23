@@ -32,10 +32,26 @@ namespace TeamXServer
             Logger.Log("", LogType.Message, false);
         }
 
+        /*
         public static void LogConfiguration(ServerConfig config)
         {
             Logger.Log($"IP:\t\t\t{config.ServerIP}", LogType.Message);
             Logger.Log($"Port:\t\t{config.ServerPort}", LogType.Message);
+            Logger.Log($"Level Name:\t\t{config.LevelName}", LogType.Message);
+            Logger.Log($"Auto Save Interval:\t{config.AutoSaveInterval}", LogType.Message);
+            Logger.Log($"Backup Count:\t{config.BackupCount}", LogType.Message);
+            Logger.Log($"Loading Backup:\t{config.LoadBackupOnStart}", LogType.Message);
+            Logger.Log($"Keeping Backup with No Editors:\t{config.KeepBackupWithNoEditors}", LogType.Message);
+        }*/
+
+        public static void LogConfiguration(ServerJSON config)
+        {
+            Logger.Log($"IP:\t\t\t{config.ServerIP}", LogType.Message);
+            Logger.Log($"Port:\t\t{config.ServerPort}", LogType.Message);
+        }
+
+        public static void LogConfiguration(SaveJSON config)
+        {
             Logger.Log($"Level Name:\t\t{config.LevelName}", LogType.Message);
             Logger.Log($"Auto Save Interval:\t{config.AutoSaveInterval}", LogType.Message);
             Logger.Log($"Backup Count:\t{config.BackupCount}", LogType.Message);

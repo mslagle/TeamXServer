@@ -5,13 +5,13 @@ using System.IO;
 
 namespace TeamXServer
 {
-    public class PermissionSystemPlayer
+    public class PermissionPlayer
     {
         public string Name { get; set; }
         public string PermissionLevel { get; set; }
     }
 
-    public class PermissionSystemPermissions
+    public class PermissionEntry
     {
         public bool IsAdministrator { get; set; }
         public bool CanJoin { get; set; }
@@ -25,15 +25,15 @@ namespace TeamXServer
         public List<int> BannedBlocks = new List<int>();
     }
 
-    public class PermissionSystemConfig
+    public class PermissionConfig
     {
-        public Dictionary<string, PermissionSystemPlayer> Players { get; set; } = new Dictionary<string, PermissionSystemPlayer>();
-        public Dictionary<string, PermissionSystemPermissions> Permissions { get; set; } = new Dictionary<string, PermissionSystemPermissions>();
+        public Dictionary<string, PermissionPlayer> Players { get; set; } = new Dictionary<string, PermissionPlayer>();
+        public Dictionary<string, PermissionEntry> Permissions { get; set; } = new Dictionary<string, PermissionEntry>();
     }
 
     public class PermissionSystem
     {
-        public PermissionSystemConfig CurrentConfig { get; private set; }
+        public PermissionConfig CurrentConfig { get; private set; }
         private readonly string _filePath;
 
         public PermissionSystem()
@@ -51,11 +51,11 @@ namespace TeamXServer
                 return (steamID, "", "default");
             }
 
-            PermissionSystemPlayer player = CurrentConfig.Players[steamIDString];
+            PermissionPlayer player = CurrentConfig.Players[steamIDString];
             return (steamID, player.Name, player.PermissionLevel);
         }
 
-        public PermissionSystemPermissions GetPermissions(ulong steamID)
+        public PermissionEntry GetPermissions(ulong steamID)
         {
             string steamIDString = steamID.ToString();
 
@@ -81,7 +81,7 @@ namespace TeamXServer
         {
             if (!CurrentConfig.Players.ContainsKey(steamID))
             {
-                CurrentConfig.Players[steamID] = new PermissionSystemPlayer
+                CurrentConfig.Players[steamID] = new PermissionPlayer
                 {
                     Name = $"Player_{steamID}",
                     PermissionLevel = permissionLevel
@@ -119,20 +119,20 @@ namespace TeamXServer
                 if (File.Exists(_filePath))
                 {
                     string jsonContent = File.ReadAllText(_filePath);
-                    CurrentConfig = JsonConvert.DeserializeObject<PermissionSystemConfig>(jsonContent);
+                    CurrentConfig = JsonConvert.DeserializeObject<PermissionConfig>(jsonContent);
                     Logger.Log("Loaded permissions!", LogType.Message);
                 }
                 else
                 {
                     // Initialize with a default configuration if file does not exist
-                    CurrentConfig = new PermissionSystemConfig();
+                    CurrentConfig = new PermissionConfig();
                     SavePermissionsToFile();
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error reading or parsing the JSON file: {ex.Message}");
-                CurrentConfig = new PermissionSystemConfig();
+                CurrentConfig = new PermissionConfig();
             }
         }
 
@@ -149,9 +149,9 @@ namespace TeamXServer
             }
         }
 
-        private PermissionSystemPermissions GetDefaultPermissions()
+        private PermissionEntry GetDefaultPermissions()
         {
-            return new PermissionSystemPermissions
+            return new PermissionEntry
             {
                 IsAdministrator = false,
                 CanJoin = true,
@@ -164,7 +164,7 @@ namespace TeamXServer
             };
         }
 
-        public string PermissionToDebugString(PermissionSystemPermissions permissions)
+        public string PermissionToDebugString(PermissionEntry permissions)
         {
             if (permissions == null)
             {

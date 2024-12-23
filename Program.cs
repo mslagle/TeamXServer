@@ -7,13 +7,14 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Globalization;
 using TeamXNetwork;
+using Newtonsoft.Json;
 
 namespace TeamXServer
 {
     public static class Program
     {
         private static bool readyForShutdown = false;
-        public static ServerConfig Config = new ServerConfig();
+        //public static ServerConfig Config = new ServerConfig();
         public static SaveManager saveManager;
         public static Editor editor;
         public static PlayerManager playerManager;
@@ -29,9 +30,10 @@ namespace TeamXServer
             {
                 Logger.Log("Starting TeamX Server", LogType.Message);
                 Logger.Log("Reading configuration file.", LogType.Message);
-                Config.Load();
+                
+                //Config.Load();
 
-                Graphics.LogConfiguration(Config);
+                //Graphics.LogConfiguration(Config);
 
                 PacketUtility.AutoRegisterPacketsInSameNamespace();
 
@@ -39,7 +41,10 @@ namespace TeamXServer
                 saveManager = new SaveManager();
                 playerManager = new PlayerManager();
                 perms = new PermissionSystem();
-                server = new Server();                
+                server = new Server();
+
+                Graphics.LogConfiguration(server.serverConfiguration);
+                Graphics.LogConfiguration(saveManager.saveConfiguration);
 
                 RunServerLoop();
             }

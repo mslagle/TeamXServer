@@ -1,0 +1,7 @@
+{
+  "LevelName": "TeamXServer",
+  "AutoSaveInterval": 60,
+  "BackupCount": 5,
+  "LoadBackupOnStart": true,
+  "KeepBackupWithNoEditors":  true
+}

@@ -8,18 +8,42 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using TeamXNetwork;
+using Newtonsoft.Json;
 
 namespace TeamXServer
 {
+    public class ServerJSON
+    {
+        public string ServerIP { get; set; }
+        public int ServerPort { get; set; }
+    }
+
     public class Server
     {
         private NetPeerConfiguration config;
         private NetServer server;
+        public ServerJSON serverConfiguration;
+        public string _filePath;
 
         public Server()
         {
+            _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server.json");
+
+            serverConfiguration = ReadConfig();
+            if(serverConfiguration == null)
+            {
+                serverConfiguration = new ServerJSON()
+                {
+                    ServerIP = "127.0.0.1",
+                    ServerPort = 8080
+                };
+
+                string jsonContent = JsonConvert.SerializeObject(serverConfiguration, Formatting.Indented);
+                File.WriteAllText(_filePath, jsonContent);
+            }
+
             config = new NetPeerConfiguration("TeamX");
-            config.Port = Program.Config.ServerPort;
+            config.Port = serverConfiguration.ServerPort;
             config.LocalAddress = IPAddress.Any;
 
             try
@@ -34,7 +58,18 @@ namespace TeamXServer
                 throw;
             }
 
-            Logger.Log("Starting server on " + Program.Config.ServerIP + ":" + Program.Config.ServerPort, LogType.Message);
+            Logger.Log("Starting server on " + serverConfiguration.ServerIP + ":" + serverConfiguration.ServerPort, LogType.Message);
+        }
+
+        public ServerJSON ReadConfig()
+        {
+            if (!File.Exists(_filePath))
+            {
+                return null;
+            }
+
+            string jsonContent = File.ReadAllText(_filePath);
+            return JsonConvert.DeserializeObject<ServerJSON>(jsonContent);
         }
 
         public void Run()
@@ -132,12 +167,143 @@ namespace TeamXServer
                 case PermissionTableSubmit permissionTableSubmit:
                     HandlePermissionTableSubmit(permissionTableSubmit, connection);
                     break;
+                case LevelDirectoryRequestPacket levelDirectoryRequestPacket:
+                    HandleLevelDirectoryRequest(levelDirectoryRequestPacket, connection);
+                    break;
+                case LoadLevelRequestPacket loadLevelRequestPacket:
+                    HandleLoadLevelRequest(loadLevelRequestPacket, connection);
+                    break;
+                case SaveConfigurationRequestPacket saveConfigurationRequestPacket:
+                    HandleSaveConfigurationRequest(saveConfigurationRequestPacket, connection);
+                    break;
+                case SaveConfigurationSubmitPacket saveConfigurationSubmitPacket:
+                    HandleSaveConfigurationSubmit(saveConfigurationSubmitPacket, connection);
+                    break;
+                case SaveCurrentStatePacket saveCurrentStatePacket:
+                    HandleSaveCurrentState(saveCurrentStatePacket, connection);
+                    break;
+            }
+        }
+
+        public void HandleLevelDirectoryRequest(LevelDirectoryRequestPacket levelDirectoryRequest, NetConnection connection)
+        {
+            PermissionEntry perms = Program.perms.GetPermissions(levelDirectoryRequest.SteamID);
+            if (perms.IsAdministrator)
+            {
+                LevelDirectoryResponsePacket levelDirectoryResponse = new LevelDirectoryResponsePacket();
+                levelDirectoryResponse.LocalPaths = new List<string>();
+
+                // Find all .teamkist files in ServerBasePath and subfolders
+                IEnumerable<string> teamkistFiles = Directory.EnumerateFiles(Program.saveManager.ServerBasePath, "*.teamkist", SearchOption.AllDirectories);
+
+                foreach (var file in teamkistFiles)
+                {
+                    // Compute the local path relative to ServerBasePath
+                    string localPath = Path.GetRelativePath(Program.saveManager.ServerBasePath, file);
+                    levelDirectoryResponse.LocalPaths.Add(localPath);
+                }
+
+                // Prepare and send the response packet
+                var outgoingMessage = connection.Peer.CreateMessage();
+                PacketUtility.Pack(levelDirectoryResponse, outgoingMessage);
+                connection.SendMessage(outgoingMessage, NetDeliveryMethod.ReliableOrdered, 0);
+            }
+        }
+
+        public void HandleLoadLevelRequest(LoadLevelRequestPacket levelLoadRequest, NetConnection connection)
+        {
+            PermissionEntry perms = Program.perms.GetPermissions(levelLoadRequest.SteamID);
+            if (perms.IsAdministrator)
+            {
+                string fullPath = Path.Combine(Program.saveManager.ServerBasePath, levelLoadRequest.LocalPath);
+
+                // Look for the .teamkist file in the subdirectory or directory.
+                FileInfo fileInfo = null;
+
+                if (File.Exists(fullPath))
+                {
+                    // If the file exists, get its FileInfo
+                    fileInfo = new FileInfo(fullPath);
+
+                    //Clear the editor.
+                    Program.editor.Clear();
+
+                    //Load the file into the editor.
+                    Program.saveManager.LoadSave(fileInfo);
+
+                    //Send a ServerStateResponse to all connected players.
+                    //For each connected player, send them the permissions according to their permission level.
+                    foreach (KeyValuePair<NetConnection, Player> kvp in Program.playerManager.connectedPlayers)
+                    {
+                        EditorStateResponsePacket editorState = new EditorStateResponsePacket()
+                        {
+                            BlockCount = Program.editor.Blocks.Count,
+                            BlockStrings = Program.editor.GetBlockStrings(),
+                            Floor = Program.editor.Floor,
+                            Skybox = Program.editor.Skybox
+                        };
+
+                        var outgoingMessage = kvp.Key.Peer.CreateMessage();
+                        PacketUtility.Pack(editorState, outgoingMessage);
+                        kvp.Key.SendMessage(outgoingMessage, NetDeliveryMethod.ReliableOrdered, 0);
+
+                        Logger.Log($"Sending EditorStateResponse packet back to player.", LogType.Debug);
+                    }
+                }
+            }
+        }
+
+        public void HandleSaveConfigurationRequest(SaveConfigurationRequestPacket saveConfigurationRequest, NetConnection connection)
+        {
+            PermissionEntry perms = Program.perms.GetPermissions(saveConfigurationRequest.SteamID);
+            if (perms.IsAdministrator)
+            {
+                SaveJSON saveJSON = Program.saveManager.saveConfiguration;
+                SaveConfigurationResponsePacket saveConfigurationResponse = new SaveConfigurationResponsePacket()
+                {
+                    AutoSaveInterval = saveJSON.AutoSaveInterval,
+                    BackupCount = saveJSON.BackupCount,
+                    KeepBackupWithNoEditors = saveJSON.KeepBackupWithNoEditors,
+                    LevelName = saveJSON.LevelName,
+                    LoadBackupOnStart = saveJSON.LoadBackupOnStart
+                };
+
+                var outgoingMessage = connection.Peer.CreateMessage();
+                PacketUtility.Pack(saveConfigurationResponse, outgoingMessage);
+                connection.SendMessage(outgoingMessage, NetDeliveryMethod.ReliableOrdered, 0);
+            }
+        }
+
+        public void HandleSaveConfigurationSubmit(SaveConfigurationSubmitPacket saveConfigurationSubmit, NetConnection connection)
+        {
+            PermissionEntry perms = Program.perms.GetPermissions(saveConfigurationSubmit.SteamID);
+            if (perms.IsAdministrator)
+            {
+                SaveJSON saveJSON = new SaveJSON()
+                {
+                    AutoSaveInterval = saveConfigurationSubmit.AutoSaveInterval,
+                    BackupCount = saveConfigurationSubmit.BackupCount,
+                    LoadBackupOnStart = saveConfigurationSubmit.LoadBackupOnStart,
+                    LevelName = saveConfigurationSubmit.LevelName,
+                    KeepBackupWithNoEditors = saveConfigurationSubmit.KeepBackupWithNoEditors
+                };
+                
+                Program.saveManager.ApplySaveConfiguration(saveJSON);
+            }
+        }
+
+        public void HandleSaveCurrentState(SaveCurrentStatePacket saveCurrentState, NetConnection connection)
+        {
+            PermissionEntry perms = Program.perms.GetPermissions(saveCurrentState.SteamID);
+            if (perms.IsAdministrator)
+            {
+                Program.saveManager.Save();
             }
         }
 
         public void HandlePermissionTableRequest(PermissionTableRequest tableRequest, NetConnection connection)
         {
-            PermissionSystemPermissions perms = Program.perms.GetPermissions(tableRequest.SteamID);
+            PermissionEntry perms = Program.perms.GetPermissions(tableRequest.SteamID);
             if (perms.IsAdministrator)
             {
                 PermissionTableResponse resp = new PermissionTableResponse();
@@ -162,11 +328,39 @@ namespace TeamXServer
             {
                 Program.perms.UpdatePlayerPermission(entry.Item1.ToString(), entry.Item3);
             }
+
+            //For each connected player, send them the permissions according to their permission level.
+            foreach(KeyValuePair<NetConnection, Player> kvp in Program.playerManager.connectedPlayers)
+            {
+                ulong steamID = kvp.Value.SteamID;
+
+                PermissionEntry perms = Program.perms.GetPermissions(steamID);
+
+                ServerRulesResponsePacket serverRules = new ServerRulesResponsePacket()
+                {
+                    IsAdministrator = perms.IsAdministrator,
+                    CanJoin = perms.CanJoin,
+                    CanCreate = perms.CanCreate,
+                    CanEdit = perms.CanEdit,
+                    CanEditAll = perms.CanEditAll,
+                    CanEditFloor = perms.CanEditFloor,
+                    CanEditSkybox = perms.CanEditSkybox,
+                    CanDestroy = perms.CanDestroy,
+                    BlockLimit = perms.BlockLimit,
+                    BannedBlocks = perms.BannedBlocks
+                };
+
+                var outgoingMessage = kvp.Key.Peer.CreateMessage();
+                PacketUtility.Pack(serverRules, outgoingMessage);
+                kvp.Key.SendMessage(outgoingMessage, NetDeliveryMethod.ReliableOrdered, 0);
+
+                Logger.Log($"Sending ServerRulesResponse packet back to player.", LogType.Debug);
+            }
         }
 
         public bool Access(ulong steamID, NetConnection connection, bool sendAccessDenied = true)
         {
-            PermissionSystemPermissions perms = Program.perms.GetPermissions(steamID);
+            PermissionEntry perms = Program.perms.GetPermissions(steamID);
             if(!perms.CanJoin)
             {
                 if (sendAccessDenied)
@@ -331,7 +525,7 @@ namespace TeamXServer
 
             if(Access(packet.SteamID, connection))
             {
-                PermissionSystemPermissions perms = Program.perms.GetPermissions(packet.SteamID);
+                PermissionEntry perms = Program.perms.GetPermissions(packet.SteamID);
 
                 ServerRulesResponsePacket serverRules = new ServerRulesResponsePacket()
                 {
@@ -396,7 +590,7 @@ namespace TeamXServer
             {
                 Player player = Program.playerManager.GetPlayer(connection);                
                 Block block = Program.editor.GetBlock(packetBlock.UID);
-                PermissionSystemPermissions perms = Program.perms.GetPermissions(packet.SteamID);
+                PermissionEntry perms = Program.perms.GetPermissions(packet.SteamID);
 
                 if (block != null && player != null)
                 {
@@ -442,7 +636,7 @@ namespace TeamXServer
             {
                 Player player = Program.playerManager.GetPlayer(connection);
                 Block block = Program.editor.GetBlock(packet.UID);
-                PermissionSystemPermissions perms = Program.perms.GetPermissions(packet.SteamID);
+                PermissionEntry perms = Program.perms.GetPermissions(packet.SteamID);
 
                 if (block != null && player != null)
                 {
@@ -545,7 +739,7 @@ namespace TeamXServer
             {
                 Player player = Program.playerManager.GetPlayer(connection);
                 Block block = Program.editor.GetBlock(packet.UID);
-                PermissionSystemPermissions perms = Program.perms.GetPermissions(packet.SteamID);
+                PermissionEntry perms = Program.perms.GetPermissions(packet.SteamID);
 
                 if (block != null && player != null)
                 {

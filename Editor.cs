@@ -24,6 +24,14 @@ namespace TeamXServer
             Selections = new Dictionary<string, ulong>();
         }
 
+        public void Clear()
+        {
+            Floor = 90;
+            Skybox = 0;
+            Blocks = new Dictionary<string, Block>();
+            Selections = new Dictionary<string, ulong>();
+        }
+
         public bool IsSelected(string UID)
         {
             return Selections.ContainsKey(UID);
