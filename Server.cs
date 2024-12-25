@@ -231,8 +231,17 @@ namespace TeamXServer
                     //Load the file into the editor.
                     Program.saveManager.LoadSave(fileInfo);
 
+                    //Set the save configuration level name to the loaded project.
+                    SaveJSON saveJSON = Program.saveManager.ReadConfig();
+                    string[] parts = levelLoadRequest.LocalPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    string projectName = parts[0];
+                    if(!string.IsNullOrEmpty(projectName))
+                    {
+                        saveJSON.LevelName = projectName;
+                        Program.saveManager.ApplySaveConfiguration(saveJSON);
+                    }                        
+
                     //Send a ServerStateResponse to all connected players.
-                    //For each connected player, send them the permissions according to their permission level.
                     foreach (KeyValuePair<NetConnection, Player> kvp in Program.playerManager.connectedPlayers)
                     {
                         EditorStateResponsePacket editorState = new EditorStateResponsePacket()
