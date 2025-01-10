@@ -177,18 +177,27 @@ namespace TeamXServer
 
         public void Save()
         {
-            Logger.Log("Saving...", LogType.Message);
-
             try
             {
-                var saveFile = Program.editor.CreateSaveFile();
-                SaveServerFile(saveFile);
-                SaveZeepFile(saveFile);
-                CleanupOldFiles(ServerSavePath, "*.teamkist");
-                CleanupOldFiles(ZeepSavePath, "*.zeeplevel");
+                bool shouldSave = Program.playerManager.connectedPlayers.Count > 0 || saveConfiguration.KeepBackupWithNoEditors;
 
-                lastSaveTime = DateTime.Now;
-                Logger.Log("Save completed successfully!", LogType.Message);
+                if (shouldSave)
+                {
+                    Logger.Log("Saving...", LogType.Message);
+
+                    var saveFile = Program.editor.CreateSaveFile();
+                    SaveServerFile(saveFile);
+                    SaveZeepFile(saveFile);
+                    CleanupOldFiles(ServerSavePath, "*.teamkist");
+                    CleanupOldFiles(ZeepSavePath, "*.zeeplevel");
+                    Logger.Log("Save completed successfully!", LogType.Message);
+                }
+                else
+                {
+                    Logger.Log("Save will be skipped.", LogType.Message);
+                }
+
+                lastSaveTime = DateTime.Now;                
             }
             catch (Exception ex)
             {

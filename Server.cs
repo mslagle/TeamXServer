@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TeamXNetwork;
 using Newtonsoft.Json;
+using ZeepkistNetworking;
 
 namespace TeamXServer
 {
@@ -99,7 +100,7 @@ namespace TeamXServer
 
                             if (packetType != null)
                             {
-                                var packet = (IPacket)Activator.CreateInstance(packetType);
+                                var packet = (TeamXNetwork.IPacket)Activator.CreateInstance(packetType);
                                 packet.Deserialize(im);
                                 Logger.Log($"Received packet of type: {packetType.Name}", LogType.Debug);
                                 HandlePacket(packet, senderConnection);
@@ -118,7 +119,7 @@ namespace TeamXServer
             }
         }
 
-        public void HandlePacket(IPacket packet, NetConnection connection)
+        public void HandlePacket(TeamXNetwork.IPacket packet, NetConnection connection)
         {            
             switch(packet)
             {
@@ -409,8 +410,14 @@ namespace TeamXServer
             var player = Program.playerManager.GetPlayer(connection);
             if (player != null)
             {
-                Program.playerManager.RemovePlayer(connection);
                 Logger.Log($"Player {player.SteamID} disconnected.", LogType.Message);
+
+                PlayerLeftPacket playerLeftPacket = new PlayerLeftPacket()
+                {
+                    SteamID = player.SteamID
+                };
+
+                HandlePlayerLeft(playerLeftPacket, connection);
             }
         }
 
