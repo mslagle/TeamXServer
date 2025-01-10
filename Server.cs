@@ -28,7 +28,7 @@ namespace TeamXServer
 
         public Server()
         {
-            _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server.json");
+            _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "userdata", "server.json");
 
             serverConfiguration = ReadConfig();
             if(serverConfiguration == null)
@@ -195,12 +195,20 @@ namespace TeamXServer
                 levelDirectoryResponse.LocalPaths = new List<string>();
 
                 // Find all .teamkist files in ServerBasePath and subfolders
-                IEnumerable<string> teamkistFiles = Directory.EnumerateFiles(Program.saveManager.ServerBasePath, "*.teamkist", SearchOption.AllDirectories);
+                IEnumerable<string> teamkistFiles = Directory.EnumerateFiles(
+                     Path.Combine(Program.saveManager.ServerBasePath, "userdata"),
+                     "*.teamkist",
+                     SearchOption.AllDirectories
+                 );
 
                 foreach (var file in teamkistFiles)
                 {
-                    // Compute the local path relative to ServerBasePath
-                    string localPath = Path.GetRelativePath(Program.saveManager.ServerBasePath, file);
+                    // Compute the local path relative to 'userdata'
+                    string localPath = Path.GetRelativePath(
+                        Path.Combine(Program.saveManager.ServerBasePath, "userdata"),
+                        file
+                    );
+
                     levelDirectoryResponse.LocalPaths.Add(localPath);
                 }
 
@@ -216,7 +224,7 @@ namespace TeamXServer
             PermissionEntry perms = Program.perms.GetPermissions(levelLoadRequest.SteamID);
             if (perms.IsAdministrator)
             {
-                string fullPath = Path.Combine(Program.saveManager.ServerBasePath, levelLoadRequest.LocalPath);
+                string fullPath = Path.Combine(Program.saveManager.ServerBasePath, "userdata", levelLoadRequest.LocalPath);
 
                 // Look for the .teamkist file in the subdirectory or directory.
                 FileInfo fileInfo = null;

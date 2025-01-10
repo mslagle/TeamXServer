@@ -13,4 +13,4 @@ FROM mcr.microsoft.com/dotnet/runtime:6.0
 EXPOSE 50000
 WORKDIR /App
 COPY --from=build-env /App/out .
-ENTRYPOINT ["dotnet", "TKServerConsole.dll"]
+ENTRYPOINT ["dotnet", "TeamXServer.dll"]

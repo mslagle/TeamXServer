@@ -24,14 +24,14 @@ namespace TeamXServer
         public SaveJSON saveConfiguration;
         private DateTime lastSaveTime;
 
-        public string ServerBasePath;
+        public string ServerBasePath { get; set; }
         public string ProjectPath;
         public string ZeepSavePath;
         public string ServerSavePath;
 
         public SaveManager()
         {
-            _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "save.json");
+            _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "userdata", "save.json");
             saveConfiguration = ReadConfig();
             if(saveConfiguration == null)
             {
@@ -66,7 +66,7 @@ namespace TeamXServer
         private void InitializeDirectories()
         {
             ServerBasePath = AppDomain.CurrentDomain.BaseDirectory;
-            ProjectPath = Path.Combine(ServerBasePath, saveConfiguration.LevelName);
+            ProjectPath = Path.Combine(ServerBasePath, "userdata", saveConfiguration.LevelName);
             ZeepSavePath = Path.Combine(ProjectPath, "ZeepSaves");
             ServerSavePath = Path.Combine(ProjectPath, "ServerSaves");
 
@@ -122,30 +122,7 @@ namespace TeamXServer
             Logger.Log("Loading latest save...", LogType.Message);
             LoadSave(saves.OrderByDescending(f => f.CreationTime).First());
             lastSaveTime = DateTime.Now;
-        }
-
-        public void Initialize(bool loadExistingAtStartup)
-        {
-            Logger.Log("Initializing saves...", LogType.Message);
-
-            var saves = GetSaveFiles(ServerSavePath, "*.teamkist");
-
-            if (saves.Length == 0)
-            {
-                Logger.Log("No saves found.", LogType.Message);
-                return;
-            }
-
-            if (!loadExistingAtStartup)
-            {
-                Logger.Log("LoadBackupOnStart is false, creating new save at startup.", LogType.Message);
-                return;
-            }
-
-            Logger.Log("Loading latest save...", LogType.Message);
-            LoadSave(saves.OrderByDescending(f => f.CreationTime).First());
-            lastSaveTime = DateTime.Now;
-        }
+        }    
 
         public void LoadSave(FileInfo saveFile)
         {

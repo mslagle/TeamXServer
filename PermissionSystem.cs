@@ -38,7 +38,7 @@ namespace TeamXServer
 
         public PermissionSystem()
         {
-            _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "permissions.json");
+            _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "userdata", "permissions.json");
             LoadPermissionsFromFile();
         }
 

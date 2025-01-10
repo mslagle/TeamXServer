@@ -31,10 +31,6 @@ namespace TeamXServer
                 Logger.Log("Starting TeamX Server", LogType.Message);
                 Logger.Log("Reading configuration file.", LogType.Message);
                 
-                //Config.Load();
-
-                //Graphics.LogConfiguration(Config);
-
                 PacketUtility.AutoRegisterPacketsInSameNamespace();
 
                 editor = new Editor();
