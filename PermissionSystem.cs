@@ -27,6 +27,7 @@ namespace TeamXServer
 
     public class PermissionConfig
     {
+        public string DefaultPermission;
         public Dictionary<string, PermissionPlayer> Players { get; set; } = new Dictionary<string, PermissionPlayer>();
         public Dictionary<string, PermissionEntry> Permissions { get; set; } = new Dictionary<string, PermissionEntry>();
     }
@@ -48,7 +49,7 @@ namespace TeamXServer
 
             if(!CurrentConfig.Players.ContainsKey(steamIDString))
             {
-                return (steamID, "", "default");
+                return (steamID, "", CurrentConfig.DefaultPermission);
             }
 
             PermissionPlayer player = CurrentConfig.Players[steamIDString];
@@ -67,7 +68,7 @@ namespace TeamXServer
             if (!CurrentConfig.Players.ContainsKey(steamIDString))
             {
                 // Add the unknown player with default permissions
-                AddPlayer(steamIDString, "default");
+                AddPlayer(steamIDString, CurrentConfig.DefaultPermission);
                 SavePermissionsToFile();
             }
 

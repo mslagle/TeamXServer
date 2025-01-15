@@ -183,6 +183,54 @@ namespace TeamXServer
                 case SaveCurrentStatePacket saveCurrentStatePacket:
                     HandleSaveCurrentState(saveCurrentStatePacket, connection);
                     break;
+                case CustomMessagePacket customMessagePacket:
+                    HandleCustomMessage(customMessagePacket, connection);
+                    break;
+                case HornPacket hornPacket:
+                    HandleHornPacket(hornPacket, connection);
+                    break;
+                case TeamXNetwork.ChatMessagePacket chatMessagePacket:
+                    HandleChatMessage(chatMessagePacket, connection);
+                    break;
+            }
+        }
+
+        public void HandleCustomMessage(CustomMessagePacket packet, NetConnection connection)
+        {
+            Logger.Log($"Received CustomMessage packet from {packet.SteamID}.", LogType.Debug);
+
+            if (Access(packet.SteamID, connection))
+            {
+                Logger.Log($"Forwarding message...", LogType.Debug);
+
+                //Notify others
+                Program.playerManager.SendToAllExcept(connection, packet);
+            }          
+        }
+
+        public void HandleHornPacket(HornPacket packet, NetConnection connection)
+        {
+            Logger.Log($"Received Horn packet from {packet.SteamID}.", LogType.Debug);
+
+            if (Access(packet.SteamID, connection))
+            {
+                Logger.Log($"Forwarding message...", LogType.Debug);
+
+                //Notify others
+                Program.playerManager.SendToAllExcept(connection, packet);
+            }
+        }
+
+        public void HandleChatMessage(TeamXNetwork.ChatMessagePacket packet, NetConnection connection)
+        {
+            Logger.Log($"Received ChatMessage packet from {packet.SteamID}.", LogType.Debug);
+
+            if (Access(packet.SteamID, connection))
+            {
+                Logger.Log($"Forwarding message...", LogType.Debug);
+
+                //Notify others
+                Program.playerManager.SendToAllExcept(connection, packet);
             }
         }
 
