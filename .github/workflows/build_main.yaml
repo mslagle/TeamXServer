@@ -1,4 +1,4 @@
-name: Feature builds
+name: Mainline builds
 on: 
   push:
     branches:
