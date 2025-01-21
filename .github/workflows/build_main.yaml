@@ -1,0 +1,33 @@
+name: Feature builds
+on: 
+  push:
+    branches:
+      - 'main'     # main build only
+      - 'master'     # main build only
+
+jobs:
+  builds:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}   # checkout the correct branch name
+          fetch-depth: 0                # fetch the whole repo history
+
+      - name: Build
+        run: dotnet build --configuration Release -o temp
+
+      - name: Build package file
+        run: |
+          Compress-Archive ./temp/* package.zip
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: false
+          title: "Automatic Build"
+          files: |
+            *.zip
