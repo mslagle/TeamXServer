@@ -11,7 +11,7 @@ namespace TeamXServer
 
     public static class Logger
     {
-        public static int logLevel = 1;
+        public static int logLevel = 0;
 
         public static void Log(string message, LogType logType, bool header = true)
         {
