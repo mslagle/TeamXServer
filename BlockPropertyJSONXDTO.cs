@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace TeamXServer
 {
-    public class SaveFile
+    public class BlockPropertyJSONXDTO
     {
-        public int Floor;
-        public string Skybox;
-        public List<BlockPropertyJSONX> Blocks;
+        public string blockJson;
+        public ulong SteamID;
     }
 }

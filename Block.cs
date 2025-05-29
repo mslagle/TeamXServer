@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TeamXServer
 {
-    public class Block
+    /*public class Block
     {
         public float PositionX { get; set; }
         public float PositionY { get; set; }
@@ -21,5 +21,5 @@ namespace TeamXServer
         public int ID { get; set; }
         public string UID { get; set; }
         public ulong SteamID { get; set; }
-    }
+    }*/
 }

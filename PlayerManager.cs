@@ -31,6 +31,18 @@ namespace TeamXServer
             return connectedPlayers.TryGetValue(connection, out var player) ? player : null;
         }
 
+        public Player GetPlayerBySteamID(ulong steamID)
+        {
+            foreach (var player in connectedPlayers.Values)
+            {
+                if (player.SteamID == steamID)
+                {
+                    return player;
+                }
+            }
+            return null; // Return null if no player is found
+        }
+
         public void SendToAllPlayers<T>(T packet) where T : struct, IPacket
         {
             foreach (var connection in connectedPlayers.Keys)

@@ -192,6 +192,86 @@ namespace TeamXServer
                 case TeamXNetwork.ChatMessagePacket chatMessagePacket:
                     HandleChatMessage(chatMessagePacket, connection);
                     break;
+                case TeamXNetwork.ChatCommandPacket chatCommandPacket:
+                    HandleChatCommand(chatCommandPacket, connection);
+                    break;
+            }
+        }
+
+        public void HandleChatCommand(ChatCommandPacket packet, NetConnection connection)
+        {
+            Logger.Log($"Received ChatCommand packet from {packet.SteamID}.", LogType.Debug);
+            PermissionEntry perms = Program.perms.GetPermissions(packet.SteamID);
+            if (perms.IsAdministrator)
+            {
+                //Remove the slash and split the command into parts
+                string cleanedInput = packet.Command.TrimStart('/'); // Remove leading '/'
+                string[] words = cleanedInput.Split(' ');  // Split by space
+                switch(words[0].ToLower())
+                {
+                    case "clearselections":
+                        //Clear all selections and stuff.
+                        Program.editor.ClearAllSelections();
+
+                        EditorDeselectAllOrderPacket deselectOrder = new EditorDeselectAllOrderPacket();
+
+                        Program.playerManager.SendToAllPlayers(deselectOrder);
+
+                        ChatCommandResponsePacket clearedPacket = new ChatCommandResponsePacket()
+                        {
+                            ResponseType = "Message",
+                            Message = "Clear selection send to all players."
+                        };
+                        var clearMessage = connection.Peer.CreateMessage();
+                        PacketUtility.Pack(clearedPacket, clearMessage);
+                        connection.SendMessage(clearMessage, NetDeliveryMethod.ReliableOrdered, 0);
+                        break;
+
+                    case "getplayers":
+                        //Get all the players in the current level.
+                        List<ulong> playerIDs = Program.editor.GetAllSteamIDs();
+                        List<string> playerList = new List<string>();
+
+                        foreach(ulong id in playerIDs)
+                        {
+                            (ulong, string, string) p = Program.perms.GetPermissionEntry(id);
+                            playerList.Add($"{id};{p.Item2}");
+                        }
+
+                        ChatCommandResponsePacket responsePacket = new ChatCommandResponsePacket()
+                        {
+                            ResponseType = "PlayerList",
+                            Message = string.Join('|', playerList)
+                        };
+
+                        // Prepare and send the response packet
+                        var outgoingMessage = connection.Peer.CreateMessage();
+                        PacketUtility.Pack(responsePacket, outgoingMessage);
+                        connection.SendMessage(outgoingMessage, NetDeliveryMethod.ReliableOrdered, 0);
+                        break;
+                    case "ping":
+                        ChatCommandResponsePacket pongPacket = new ChatCommandResponsePacket()
+                        {
+                            ResponseType = "Command",
+                            Message = "pong"
+                        };
+                        // Prepare and send the response packet
+                        var outgoingPongMessage = connection.Peer.CreateMessage();
+                        PacketUtility.Pack(pongPacket, outgoingPongMessage);
+                        connection.SendMessage(outgoingPongMessage, NetDeliveryMethod.ReliableOrdered, 0);
+                        break;
+                    default:
+                        ChatCommandResponsePacket broadcastCommandPacket = new ChatCommandResponsePacket()
+                        {
+                            ResponseType = "Command",
+                            Message = cleanedInput
+                        };
+
+                        var outgoingBroadcastMessage = connection.Peer.CreateMessage();
+                        PacketUtility.Pack(broadcastCommandPacket, outgoingBroadcastMessage);
+                        Program.playerManager.SendToAllPlayers(broadcastCommandPacket);
+                        break;
+                }
             }
         }
 
@@ -204,7 +284,7 @@ namespace TeamXServer
                 Logger.Log($"Forwarding message...", LogType.Debug);
 
                 //Notify others
-                Program.playerManager.SendToAllExcept(connection, packet);
+                Program.playerManager.SendToAllPlayers(packet);
             }          
         }
 
@@ -625,7 +705,7 @@ namespace TeamXServer
         {
             Logger.Log($"Received EditorBlockCreate packet from {packet.SteamID}.", LogType.Debug);
 
-            Block packetBlock = Program.editor.JSONToBlock(packet.BlockString);
+            BlockPropertyJSONX packetBlock = BlockPropertyJSONX.FromJson(packet.BlockString);
 
             if (Access(packet.SteamID, connection, false))
             {
@@ -643,7 +723,7 @@ namespace TeamXServer
 
                 EditorBlockCreateDeniedPacket editorBlockCreateDeniedPacket = new EditorBlockCreateDeniedPacket()
                 {
-                     UID = packetBlock.UID
+                    UID = packetBlock.blockPropertyJSON.u
                 };
 
                 Logger.Log($"Sending EditorBlockCreateDenied packet back to player.", LogType.Debug);
@@ -656,18 +736,18 @@ namespace TeamXServer
         {
             Logger.Log($"Received EditorBlockUpdate packet from {packet.SteamID}.", LogType.Debug);
 
-            Block packetBlock = Program.editor.JSONToBlock(packet.BlockString);
+            BlockPropertyJSONX packetBlock = BlockPropertyJSONX.FromJson(packet.BlockString);
 
             if (Access(packet.SteamID, connection, false))
             {
                 Player player = Program.playerManager.GetPlayer(connection);                
-                Block block = Program.editor.GetBlock(packetBlock.UID);
+                BlockPropertyJSONX block = Program.editor.GetBlock(packetBlock.blockPropertyJSON.u);
                 PermissionEntry perms = Program.perms.GetPermissions(packet.SteamID);
 
                 if (block != null && player != null)
                 {
-                    bool isSelected = Program.editor.IsSelected(packetBlock.UID);
-                    bool selectedBySamePlayer = isSelected && Program.editor.IsSelectedBy(packetBlock.UID, player.SteamID);
+                    bool isSelected = Program.editor.IsSelected(packetBlock.blockPropertyJSON.u);
+                    bool selectedBySamePlayer = isSelected && Program.editor.IsSelectedBy(packetBlock.blockPropertyJSON.u, player.SteamID);
                     bool notSelectedAccess = !isSelected && (block.SteamID == packet.SteamID || perms.CanEditAll);
 
                     Logger.Log($"HandleEditorBlockUpdate: IsSelected: {isSelected}, SelectedBySamePlayer: {selectedBySamePlayer}, NotSelectedAccess: {notSelectedAccess}.", LogType.Debug);
@@ -694,7 +774,7 @@ namespace TeamXServer
 
             EditorBlockUpdateDeniedPacket editorBlockUpdateDeniedPacket = new EditorBlockUpdateDeniedPacket()
             {
-                BlockString = Program.editor.GetBlockString(packetBlock.UID)
+                BlockString = Program.editor.GetBlockString(packetBlock.blockPropertyJSON.u)
             };
 
             Program.playerManager.SendToPlayer(connection, editorBlockUpdateDeniedPacket);            
@@ -707,7 +787,7 @@ namespace TeamXServer
             if (Access(packet.SteamID, connection, false))
             {
                 Player player = Program.playerManager.GetPlayer(connection);
-                Block block = Program.editor.GetBlock(packet.UID);
+                BlockPropertyJSONX block = Program.editor.GetBlock(packet.UID);
                 PermissionEntry perms = Program.perms.GetPermissions(packet.SteamID);
 
                 if (block != null && player != null)
@@ -810,7 +890,7 @@ namespace TeamXServer
             if (Access(packet.SteamID, connection, false))
             {
                 Player player = Program.playerManager.GetPlayer(connection);
-                Block block = Program.editor.GetBlock(packet.UID);
+                BlockPropertyJSONX block = Program.editor.GetBlock(packet.UID);
                 PermissionEntry perms = Program.perms.GetPermissions(packet.SteamID);
 
                 if (block != null && player != null)
@@ -856,7 +936,7 @@ namespace TeamXServer
             if (Access(packet.SteamID, connection, false))
             {
                 Player player = Program.playerManager.GetPlayer(connection);
-                Block block = Program.editor.GetBlock(packet.UID);
+                BlockPropertyJSONX block = Program.editor.GetBlock(packet.UID);
 
                 if (block != null && player != null)
                 {

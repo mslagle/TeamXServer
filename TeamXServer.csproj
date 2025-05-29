@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <StartupObject>TeamXServer.Program</StartupObject>
-    <Version>1.2.0</Version>
+    <Version>2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,6 +35,9 @@
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>libs\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Zeepkist">
+      <HintPath>libs\Zeepkist.dll</HintPath>
     </Reference>
     <Reference Include="ZeepkistNetworking">
       <HintPath>libs\ZeepkistNetworking.dll</HintPath>

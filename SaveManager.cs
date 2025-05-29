@@ -26,7 +26,6 @@ namespace TeamXServer
 
         public string ServerBasePath { get; set; }
         public string ProjectPath;
-        public string ZeepSavePath;
         public string ServerSavePath;
 
         public SaveManager()
@@ -67,11 +66,9 @@ namespace TeamXServer
         {
             ServerBasePath = AppDomain.CurrentDomain.BaseDirectory;
             ProjectPath = Path.Combine(ServerBasePath, "userdata", saveConfiguration.LevelName);
-            ZeepSavePath = Path.Combine(ProjectPath, "ZeepSaves");
             ServerSavePath = Path.Combine(ProjectPath, "ServerSaves");
 
             EnsureDirectoryExists(ProjectPath);
-            EnsureDirectoryExists(ZeepSavePath);
             EnsureDirectoryExists(ServerSavePath);
         }
 
@@ -164,9 +161,7 @@ namespace TeamXServer
 
                     var saveFile = Program.editor.CreateSaveFile();
                     SaveServerFile(saveFile);
-                    SaveZeepFile(saveFile);
                     CleanupOldFiles(ServerSavePath, "*.teamkist");
-                    CleanupOldFiles(ZeepSavePath, "*.zeeplevel");
                     Logger.Log("Save completed successfully!", LogType.Message);
                 }
                 else
@@ -187,37 +182,6 @@ namespace TeamXServer
             string filePath = GetTimestampedFilePath(ServerSavePath, $"{saveConfiguration.LevelName}.teamkist");
             File.WriteAllText(filePath, JsonConvert.SerializeObject(saveFile));
             Logger.Log($"Server save created: {filePath}", LogType.Message);
-        }
-
-        private void SaveZeepFile(SaveFile saveFile)
-        {
-            string filePath = GetTimestampedFilePath(ZeepSavePath, $"{saveConfiguration.LevelName}.zeeplevel");
-            File.WriteAllLines(filePath, FormatZeepFile(saveFile));
-            Logger.Log($"Zeep save created: {filePath}", LogType.Message);
-        }
-
-        private List<string> FormatZeepFile(SaveFile saveFile)
-        {
-            var lines = new List<string>();
-            string uid = GenerateUID(saveFile);
-            lines.Add($"LevelEditor2,{saveConfiguration.LevelName},{uid}");
-            lines.Add("0,0,0,0,0,0,0,0");
-            lines.Add($"invalid track,0,0,0,{saveFile.Skybox},{saveFile.Floor}");
-
-            foreach (var block in saveFile.Blocks)
-            {
-                lines.Add($"{block.ID},{string.Join(",", block.Properties.Select(p => p.ToString(CultureInfo.InvariantCulture)))}");
-            }
-
-            return lines;
-        }
-
-        private string GenerateUID(SaveFile saveFile)
-        {
-            string parsedName = Regex.Replace(saveConfiguration.LevelName, @"[^a-zA-Z0-9\s]", "");
-            string timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-            string randomPart = new Random().Next(100000, 999999).ToString();
-            return $"{timestamp}-{parsedName}-{randomPart}-{saveFile.Blocks.Count}";
         }
 
         private void CleanupOldFiles(string directory, string searchPattern)

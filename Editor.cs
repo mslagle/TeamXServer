@@ -12,23 +12,28 @@ namespace TeamXServer
     public class Editor
     {
         public int Floor { get; private set; }
-        public int Skybox { get; private set; }
-        public Dictionary<string, Block> Blocks { get; private set; }
+        public string Skybox { get; private set; }
+        public Dictionary<string, BlockPropertyJSONX> Blocks { get; private set; }
         public Dictionary<string, ulong> Selections { get; private set; }
 
         public Editor()
         {
             Floor = 90;
-            Skybox = 0;
-            Blocks = new Dictionary<string, Block>();
+            Skybox = "{\"enviro\":{\"skybox\":0,\"groundMat\":90,\"overrideFog_b\":false,\"overrideFog_f\":0,\"skyboxOverride\":null}}";
+            Blocks = new Dictionary<string, BlockPropertyJSONX>();
             Selections = new Dictionary<string, ulong>();
         }
 
         public void Clear()
         {
             Floor = 90;
-            Skybox = 0;
-            Blocks = new Dictionary<string, Block>();
+            Skybox = "{\"enviro\":{\"skybox\":0,\"groundMat\":90,\"overrideFog_b\":false,\"overrideFog_f\":0,\"skyboxOverride\":null}}";
+            Blocks = new Dictionary<string, BlockPropertyJSONX>();
+            Selections = new Dictionary<string, ulong>();
+        }
+
+        public void ClearAllSelections()
+        {
             Selections = new Dictionary<string, ulong>();
         }
 
@@ -60,6 +65,19 @@ namespace TeamXServer
             return false;
         }
 
+        public List<ulong> GetAllSteamIDs()
+        {
+            List<ulong> steamIDs = new List<ulong>();
+            foreach(BlockPropertyJSONX block in Blocks.Values)
+            {
+                if(!steamIDs.Contains(block.SteamID))
+                {
+                    steamIDs.Add(block.SteamID);
+                }
+            }
+            return steamIDs;
+        }
+
         public void RemoveAllSelectionsFrom(ulong steamID)
         {
             List<string> keysToRemove = new List<string>();
@@ -80,7 +98,7 @@ namespace TeamXServer
             }
         }
 
-        public Block GetBlock(string UID)
+        public BlockPropertyJSONX GetBlock(string UID)
         {
             if(Blocks.ContainsKey(UID))
             {
@@ -109,28 +127,28 @@ namespace TeamXServer
             }
         }
 
-        public void Add(Block block)
+        public void Add(BlockPropertyJSONX block)
         {
-            if (!Blocks.ContainsKey(block.UID))
+            if (!Blocks.ContainsKey(block.blockPropertyJSON.u))
             {
-                Blocks.Add(block.UID, block);
+                Blocks.Add(block.blockPropertyJSON.u, block);
             }
             else
             {
-                Logger.Log("Can't add block because UID already exists. UID: " + block.UID, LogType.Warning);
+                Logger.Log("Can't add block because UID already exists. UID: " + block.blockPropertyJSON.u, LogType.Warning);
             }
         }
 
         public void Add(string blockString)
         {
-            Block block = JSONToBlock(blockString);
-            if (!Blocks.ContainsKey(block.UID))
+            BlockPropertyJSONX block = BlockPropertyJSONX.FromJson(blockString);
+            if (!Blocks.ContainsKey(block.blockPropertyJSON.u))
             {
-                Blocks.Add(block.UID, block);
+                Blocks.Add(block.blockPropertyJSON.u, block);
             }
             else
             {
-                Logger.Log("Can't add block because UID already exists. UID: " + block.UID, LogType.Warning);
+                Logger.Log("Can't add block because UID already exists. UID: " + block.blockPropertyJSON.u, LogType.Warning);
             }
         }
 
@@ -151,15 +169,15 @@ namespace TeamXServer
             }
         }
 
-        public void Update(Block block)
+        public void Update(BlockPropertyJSONX block)
         {
-            if (Blocks.ContainsKey(block.UID))
+            if (Blocks.ContainsKey(block.blockPropertyJSON.u))
             {
-                Blocks[block.UID] = block;
+                Blocks[block.blockPropertyJSON.u] = block;
             }
             else
             {
-                Logger.Log("Can't update block because UID doesn't exist. UID: " + block.UID, LogType.Warning);
+                Logger.Log("Can't update block because UID doesn't exist. UID: " + block.blockPropertyJSON.u, LogType.Warning);
             }
         }
 
@@ -168,7 +186,7 @@ namespace TeamXServer
             Floor = floor;
         }
 
-        public void SetSkybox(int skybox)
+        public void SetSkybox(string skybox)
         {
             Skybox = skybox;
         }
@@ -182,15 +200,15 @@ namespace TeamXServer
             // Clear current blocks and load from the save
             Blocks.Clear();
 
-            foreach (Block block in saveFile.Blocks)
+            foreach (BlockPropertyJSONX block in saveFile.Blocks)
             {
                 try
                 {
-                    Blocks.Add(block.UID, block);
+                    Blocks.Add(block.blockPropertyJSON.u, block);
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log($"Error loading block UID {block.UID}: {ex.Message}", LogType.Warning);
+                    Logger.Log($"Error loading block UID {block.blockPropertyJSON.u}: {ex.Message}", LogType.Warning);
                 }
             }
         }
@@ -208,9 +226,9 @@ namespace TeamXServer
         public List<string> GetBlockStrings()
         {
             List<string> blockStrings = new List<string>();
-            foreach(Block block in Blocks.Values)
+            foreach(BlockPropertyJSONX block in Blocks.Values)
             {
-                blockStrings.Add(BlockToJSON(block));
+                blockStrings.Add(block.ToJson());
             }
             return blockStrings;
         }
@@ -219,41 +237,10 @@ namespace TeamXServer
         {
             if(Blocks.ContainsKey(UID))
             {
-                return BlockToJSON(Blocks[UID]);
+                return Blocks[UID].ToJson();
             }
 
             return "";
-        }
-
-        public Block JSONToBlock(string json)
-        {
-            Block block = JsonConvert.DeserializeObject<Block>(json);
-            return block;
-        }
-
-        public string BlockToJSON(Block block)
-        {
-            return JsonConvert.SerializeObject(block);
-        }
-
-        private void SetBlockProperties(Block block, string properties)
-        {
-            List<float> propertyList = PropertyStringToList(properties);
-            block.PositionX = propertyList[0];
-            block.PositionY = propertyList[1];
-            block.PositionZ = propertyList[2];
-            block.EulerAnglesX = propertyList[3];
-            block.EulerAnglesY = propertyList[4];
-            block.EulerAnglesZ = propertyList[5];
-            block.LocalScaleX = propertyList[6];
-            block.LocalScaleY = propertyList[7];
-            block.LocalScaleZ = propertyList[8];
-            block.Properties = propertyList;
-        }
-
-        private List<float> PropertyStringToList(string properties)
-        {
-            return properties.Split('|').Select(s => float.Parse(s, CultureInfo.InvariantCulture)).ToList();
         }
     }
 }
