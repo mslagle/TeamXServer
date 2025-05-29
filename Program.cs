@@ -56,6 +56,7 @@ namespace TeamXServer
             {
                 saveManager.RunAutoSave();
                 server.Run();
+                Thread.Sleep(10);
             }
         }
 

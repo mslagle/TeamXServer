@@ -16,7 +16,7 @@ namespace TeamXServer
             @"    ██║   ██╔══╝  ██╔══██║██║╚██╔╝██║ ██╔██╗ ",
             @"    ██║   ███████╗██║  ██║██║ ╚═╝ ██║██╔╝ ██╗",
             @"    ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝",
-            @"                                  by Metalted"                                           
+            @" [V2.0]                           by Metalted"                                           
         };
 
         public static void ShowLogo()
